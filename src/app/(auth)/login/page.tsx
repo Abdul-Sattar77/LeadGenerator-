@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
+import { motion } from "framer-motion";
 import { Loader2, Mail, Lock } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,7 +33,8 @@ export default function LoginPage() {
   }
 
   return (
-    <Card className="p-8">
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}>
+    <Card className="p-8 shadow-premium">
       <h1 className="text-2xl font-bold tracking-tight">Welcome back</h1>
       <p className="mt-1 text-sm text-muted-foreground">
         Sign in to your LeadFinder CRM.
@@ -57,6 +59,7 @@ export default function LoginPage() {
         </Link>
       </p>
     </Card>
+    </motion.div>
   );
 }
 

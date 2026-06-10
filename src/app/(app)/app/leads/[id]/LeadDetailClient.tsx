@@ -11,7 +11,8 @@ import { LEAD_STATUSES } from "@/lib/enums";
 import { LEAD_STATUS_META, ACTIVITY_LABEL, statusLabel } from "@/lib/leadStatus";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ScoreBadge } from "@/components/leads/badges";
+import { Avatar } from "@/components/ui/avatar";
+import { ScoreBadge, StatusBadge } from "@/components/leads/badges";
 
 type Member = { id: string; name: string; role: string };
 type Detail = {
@@ -84,13 +85,20 @@ export default function LeadDetailClient({ id, initial, members }: { id: number;
 
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <ScoreBadge score={lead.leadScore} />
+        <div className="flex items-start gap-3.5">
+          <Avatar name={lead.name} size="lg" />
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">{lead.name}</h1>
-            <p className="text-sm text-muted-foreground">
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-2xl font-extrabold tracking-tight">{lead.name}</h1>
+              <StatusBadge status={lead.status} />
+            </div>
+            <p className="mt-0.5 text-sm text-muted-foreground">
               {[lead.category, lead.industry].filter(Boolean).join(" · ") || "Lead"}
             </p>
+            <div className="mt-2 flex items-center gap-2">
+              <ScoreBadge score={lead.leadScore} />
+              <span className="text-xs text-muted-foreground">lead score</span>
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
