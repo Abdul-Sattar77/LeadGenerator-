@@ -11,17 +11,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   });
 
   return (
-    <div className="flex min-h-screen bg-secondary/30">
+    <div className="app-canvas flex min-h-screen">
       <Sidebar
         orgName={org?.name ?? "Workspace"}
         plan={org?.subscription?.plan ?? "FREE"}
         role={ctx.role}
       />
       <div className="flex min-h-screen flex-1 flex-col">
-        <header className="sticky top-0 z-40 flex h-16 items-center justify-end border-b border-border bg-card/80 px-6 backdrop-blur-lg">
+        <header className="sticky top-0 z-40 flex h-16 items-center justify-end border-b border-white/60 bg-white/70 px-6 backdrop-blur-xl">
           <UserMenu name={ctx.name} role={ctx.role} />
         </header>
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 p-6 lg:p-8">{children}</main>
       </div>
     </div>
   );

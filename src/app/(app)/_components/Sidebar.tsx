@@ -49,8 +49,8 @@ export default function Sidebar({
   const pathname = usePathname();
 
   return (
-    <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-border bg-card md:flex">
-      <div className="flex h-16 items-center border-b border-border px-5">
+    <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-white/60 bg-white/65 backdrop-blur-xl md:flex">
+      <div className="flex h-16 items-center border-b border-white/60 px-5">
         <Link href="/app">
           <Logo size={30} />
         </Link>
@@ -64,14 +64,15 @@ export default function Sidebar({
           const content = (
             <span
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                "relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
                 active
-                  ? "bg-accent text-accent-foreground"
+                  ? "bg-gradient-to-r from-indigo-500/12 to-violet-500/12 text-primary shadow-sm ring-1 ring-primary/10"
                   : disabled
-                    ? "cursor-not-allowed text-muted-foreground/50"
-                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    ? "cursor-not-allowed text-muted-foreground/45"
+                    : "text-muted-foreground hover:bg-white/70 hover:text-foreground hover:shadow-sm"
               )}
             >
+              {active && <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-gradient-to-b from-indigo-500 to-violet-500" />}
               <Icon className="h-4.5 w-4.5 shrink-0" />
               <span className="flex-1">{item.label}</span>
               {disabled && (

@@ -9,7 +9,9 @@ import { LEAD_STATUSES } from "@/lib/enums";
 import { LEAD_STATUS_META } from "@/lib/leadStatus";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { StatusBadge, ScoreBadge } from "@/components/leads/badges";
+import { Avatar } from "@/components/ui/avatar";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ScoreBadge } from "@/components/leads/badges";
 
 type Member = { id: string; name: string; role: string };
 type Lead = {
@@ -62,8 +64,8 @@ export default function LeadsClient({ members }: { members: Member[] }) {
     <div className="mx-auto max-w-6xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Leads</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-3xl font-extrabold tracking-tight">Leads</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             {leads.length} lead{leads.length === 1 ? "" : "s"} in your workspace
           </p>
         </div>
@@ -100,15 +102,16 @@ export default function LeadsClient({ members }: { members: Member[] }) {
             <Loader2 className="h-4 w-4 animate-spin" /> Loading leads…
           </div>
         ) : leads.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-accent text-accent-foreground">
-              <Users className="h-6 w-6" />
-            </span>
-            <p className="text-sm text-muted-foreground">No leads match your filters.</p>
-            <Button variant="outline" size="sm" onClick={() => setShowNew(true)}>
-              <Plus className="h-4 w-4" /> Add your first lead
-            </Button>
-          </div>
+          <EmptyState
+            icon={Users}
+            title="No leads match your filters"
+            description="Add a lead manually or pull a batch from Google Maps."
+            action={
+              <Button variant="gradient" size="sm" onClick={() => setShowNew(true)}>
+                <Plus className="h-4 w-4" /> Add your first lead
+              </Button>
+            }
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
@@ -127,11 +130,16 @@ export default function LeadsClient({ members }: { members: Member[] }) {
                   <tr key={lead.id} className="transition-colors hover:bg-accent/30">
                     <td className="px-4 py-3"><ScoreBadge score={lead.leadScore} /></td>
                     <td className="px-4 py-3">
-                      <Link href={`/app/leads/${lead.id}`} className="font-semibold hover:text-primary">
-                        {lead.name}
-                      </Link>
-                      <div className="text-xs text-muted-foreground">
-                        {[lead.category, lead.industry].filter(Boolean).join(" · ") || "—"}
+                      <div className="flex items-center gap-2.5">
+                        <Avatar name={lead.name} size="sm" />
+                        <div className="min-w-0">
+                          <Link href={`/app/leads/${lead.id}`} className="font-semibold hover:text-primary">
+                            {lead.name}
+                          </Link>
+                          <div className="text-xs text-muted-foreground">
+                            {[lead.category, lead.industry].filter(Boolean).join(" · ") || "—"}
+                          </div>
+                        </div>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{lead.phone || "—"}</td>

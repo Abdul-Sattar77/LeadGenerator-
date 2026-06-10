@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { TASK_TYPES, TASK_PRIORITIES } from "@/lib/enums";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 
 type Member = { id: string; name: string; role: string };
 type LeadRef = { id: number; name: string };
@@ -83,8 +84,8 @@ export default function TasksClient({ members, leads }: { members: Member[]; lea
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Tasks &amp; Follow-ups</h1>
-          <p className="text-sm text-muted-foreground">{tasks.length} task{tasks.length === 1 ? "" : "s"}</p>
+          <h1 className="text-3xl font-extrabold tracking-tight">Tasks &amp; Follow-ups</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{tasks.length} task{tasks.length === 1 ? "" : "s"}</p>
         </div>
         <Button variant="gradient" onClick={() => setShowNew(true)}>
           <Plus className="h-4 w-4" /> New task
@@ -112,15 +113,16 @@ export default function TasksClient({ members, leads }: { members: Member[]; lea
             <Loader2 className="h-4 w-4 animate-spin" /> Loading…
           </div>
         ) : tasks.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 py-16 text-center">
-            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-accent text-accent-foreground">
-              <CheckSquare className="h-6 w-6" />
-            </span>
-            <p className="text-sm text-muted-foreground">No tasks here.</p>
-            <Button variant="outline" size="sm" onClick={() => setShowNew(true)}>
-              <Plus className="h-4 w-4" /> Add a task
-            </Button>
-          </div>
+          <EmptyState
+            icon={CheckSquare}
+            title="No tasks here"
+            description="Create a follow-up to stay on top of your pipeline."
+            action={
+              <Button variant="gradient" size="sm" onClick={() => setShowNew(true)}>
+                <Plus className="h-4 w-4" /> Add a task
+              </Button>
+            }
+          />
         ) : (
           <ul className="divide-y divide-border">
             {tasks.map((t) => {
