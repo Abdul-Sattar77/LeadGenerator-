@@ -1,0 +1,220 @@
+// Prisma schema for LeadFinder CRM.
+//
+// PORTABILITY: enum-like fields are stored as `String` (validated by Zod / TS
+// unions in src/lib/enums.ts) and money as `Decimal`, so this single schema runs
+// on SQLite for local dev AND PostgreSQL in production. To go to prod, change the
+// datasource `provider` to "postgresql" and set DATABASE_URL — no schema rewrite.
+// The legacy `Lead` model below is kept as-is; it gets org-scoped in Phase 2.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────── TENANT & AUTH (Phase 1) ───────────────────────
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+
+  users        User[]
+  pipelines    Pipeline[]
+  subscription Subscription?
+  leads        Lead[]
+}
+
+model User {
+  id               String    @id @default(cuid())
+  organizationId   String
+  email            String    @unique
+  passwordHash     String? // null when social-only
+  name             String
+  avatarUrl        String?
+  role             String    @default("SALES_REP") // ADMIN | MANAGER | SALES_REP | VIEWER
+  emailVerified    DateTime?
+  twoFactorEnabled Boolean   @default(false)
+  twoFactorSecret  String?
+  createdAt        DateTime  @default(now())
+
+  organization  Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  accounts      Account[]
+  assignedLeads Lead[]       @relation("LeadAssignee")
+  tasks         Task[]       @relation("TaskAssignee")
+  createdTasks  Task[]       @relation("TaskCreator")
+
+  @@index([organizationId])
+}
+
+// OAuth provider links (social login — wired in a later phase).
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  provider          String
+  providerAccountId String
+  accessToken       String?
+  refreshToken      String?
+  expiresAt         Int?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+// Email verification + password reset tokens.
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Pipeline {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  isDefault      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  stages       PipelineStage[]
+
+  @@index([organizationId])
+}
+
+model PipelineStage {
+  id         String @id @default(cuid())
+  pipelineId String
+  name       String
+  order      Int
+  color      String @default("#6366F1")
+
+  pipeline Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+
+  @@index([pipelineId])
+}
+
+model Subscription {
+  id                   String    @id @default(cuid())
+  organizationId       String    @unique
+  plan                 String    @default("FREE") // FREE | PRO | AGENCY
+  status               String    @default("TRIALING") // TRIALING | ACTIVE | PAST_DUE | CANCELED
+  seats                Int       @default(1)
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  currentPeriodEnd     DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+// ─────────────────────── LEGACY LEAD (Phase 2 will org-scope this) ───────────────────────
+
+model Lead {
+  id Int @id @default(autoincrement())
+
+  // Stable identity = lowercased "name|address" (matches the old leadId()).
+  key String @unique
+
+  // --- Business data (from Google Places) ---
+  name           String
+  category       String  @default("")
+  phone          String  @default("")
+  rating         Float?
+  reviews        Int?
+  website        String  @default("")
+  maps           String  @default("")
+  address        String  @default("")
+  businessStatus String  @default("")
+
+  // --- CRM fields (legacy, used by the public /dashboard & /priorities pages) ---
+  stage        String    @default("New") // New | Contacted | Interested | Closed Won | Closed Lost
+  notes        String    @default("")
+  tags         String    @default("[]") // JSON-encoded array of strings (SQLite has no scalar lists)
+  followUpDate DateTime?
+
+  // --- Phase 2: tenant-scoped CRM fields (nullable so legacy leads keep working) ---
+  organizationId String?
+  assignedUserId String?
+  contactPerson  String  @default("")
+  email          String  @default("")
+  industry       String  @default("")
+  source         String  @default("GOOGLE_MAPS") // GOOGLE_MAPS | MANUAL | IMPORT | REFERRAL | WEBSITE
+  status         String   @default("NEW") // LEAD_STATUSES (NEW | CONTACTED | QUALIFIED | ...)
+  leadScore      Int      @default(0) // 0–100
+  scoreBreakdown String? // JSON-encoded {factor: points}
+  dealValue      Decimal? // potential/closed deal value (the lead = the opportunity)
+  expectedCloseDate DateTime?
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  assignedUser User?         @relation("LeadAssignee", fields: [assignedUserId], references: [id])
+  activities   Activity[]
+  crmNotes     Note[]
+  tasks        Task[]
+
+  savedAt   DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId, status])
+  @@index([assignedUserId])
+}
+
+// Chronological audit trail shown on the lead timeline.
+model Activity {
+  id             String   @id @default(cuid())
+  organizationId String
+  type           String // ActivityType (LEAD_CREATED | STATUS_CHANGED | NOTE_ADDED | ...)
+  userId         String?
+  leadId         Int?
+  metadata       String? // JSON-encoded extra detail, e.g. {"from":"NEW","to":"CONTACTED"}
+  createdAt      DateTime @default(now())
+
+  lead Lead? @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+  @@index([leadId])
+}
+
+// Follow-up tasks: calls, meetings, emails, reminders.
+model Task {
+  id             String    @id @default(cuid())
+  organizationId String
+  title          String
+  description    String    @default("")
+  type           String    @default("CALL") // CALL | MEETING | EMAIL | REMINDER
+  status         String    @default("PENDING") // PENDING | IN_PROGRESS | COMPLETED | OVERDUE
+  priority       String    @default("MEDIUM") // LOW | MEDIUM | HIGH | URGENT
+  dueDate        DateTime?
+  completedAt    DateTime?
+  assignedUserId String?
+  createdById    String?
+  leadId         Int?
+  createdAt      DateTime  @default(now())
+
+  assignedUser User? @relation("TaskAssignee", fields: [assignedUserId], references: [id])
+  createdBy    User? @relation("TaskCreator", fields: [createdById], references: [id])
+  lead         Lead? @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, status])
+  @@index([assignedUserId, dueDate])
+  @@index([leadId])
+}
+
+// Free-text notes attached to a lead (separate from the legacy single `notes` field).
+model Note {
+  id             String   @id @default(cuid())
+  organizationId String
+  body           String
+  userId         String?
+  leadId         Int?
+  createdAt      DateTime @default(now())
+
+  lead Lead? @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+}
