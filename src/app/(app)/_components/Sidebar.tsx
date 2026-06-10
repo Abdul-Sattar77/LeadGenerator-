@@ -32,8 +32,8 @@ const NAV: Item[] = [
   { href: "/app/pipeline", label: "Pipeline", icon: KanbanSquare, live: true },
   { href: "/app/tasks", label: "Tasks", icon: CheckSquare, live: true },
   { href: "/app/campaigns", label: "Campaigns", icon: Megaphone, minRole: "MANAGER" },
-  { href: "/app/reports", label: "Reports", icon: BarChart3, minRole: "MANAGER" },
-  { href: "/app/team", label: "Team", icon: UserCog, minRole: "MANAGER" },
+  { href: "/app/reports", label: "Reports", icon: BarChart3, minRole: "MANAGER", live: true },
+  { href: "/app/team", label: "Team", icon: UserCog, minRole: "MANAGER", live: true },
   { href: "/app/settings", label: "Settings", icon: Settings, minRole: "ADMIN" },
 ];
 
