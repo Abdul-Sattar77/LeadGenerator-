@@ -27,7 +27,7 @@ type Item = {
 
 const NAV: Item[] = [
   { href: "/app", label: "Overview", icon: LayoutDashboard, live: true },
-  { href: "/search", label: "Discover Leads", icon: Search, live: true },
+  { href: "/app/discover", label: "Discover Leads", icon: Search, live: true },
   { href: "/app/leads", label: "Leads", icon: Users, live: true },
   { href: "/app/pipeline", label: "Pipeline", icon: KanbanSquare, live: true },
   { href: "/app/tasks", label: "Tasks", icon: CheckSquare, live: true },

@@ -126,12 +126,20 @@ export async function getLead(ctx: TenantContext, id: number) {
 
 export async function createLead(ctx: TenantContext, input: CreateLeadInput): Promise<SerializedLead> {
   const { score, breakdown } = scoreLead(input);
-  const key = `${input.name}|${input.address ?? ""}`.toLowerCase();
+  const key = `${input.name}|${input.address ?? ""}`.toLowerCase() + `|${ctx.organizationId}`;
+
+  // Idempotent: if this business is already in the org's CRM, return it as-is
+  // (so "Save to CRM" from Discover can be clicked safely / repeatedly).
+  const existing = await prisma.lead.findFirst({
+    where: { key, organizationId: ctx.organizationId },
+    include: { assignedUser: { select: { id: true, name: true } } },
+  });
+  if (existing) return serializeLead(existing);
 
   const lead = await prisma.lead.create({
     data: {
       organizationId: ctx.organizationId,
-      key: `${key}|${ctx.organizationId}`, // org-namespaced to avoid cross-tenant key clashes
+      key, // already org-namespaced above to avoid cross-tenant clashes
       name: input.name,
       contactPerson: input.contactPerson ?? "",
       email: input.email ?? "",

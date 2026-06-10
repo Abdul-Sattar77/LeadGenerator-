@@ -55,7 +55,7 @@ export default async function OverviewPage() {
           <p className="mt-1 text-muted-foreground">Here’s how your workspace is performing today.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href="/search" className="inline-flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 text-sm font-semibold text-white shadow-soft transition hover:opacity-95 hover:shadow-glow">
+          <Link href="/app/discover" className="inline-flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 text-sm font-semibold text-white shadow-soft transition hover:opacity-95 hover:shadow-glow">
             <Search className="h-4 w-4" /> Discover leads
           </Link>
           <Link href="/app/leads" className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/70 bg-white/80 px-4 text-sm font-semibold shadow-soft backdrop-blur transition hover:bg-white">
