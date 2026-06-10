@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getTenantContext } from "@/server/tenant";
 import { listLeads, createLead } from "@/server/services/leadService";
 import { createLeadSchema } from "@/lib/validations/lead";
+import { PlanLimitError } from "@/lib/plans";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,13 @@ export async function POST(request: Request) {
       { status: 422 }
     );
   }
-  const lead = await createLead(ctx, parsed.data);
-  return NextResponse.json({ lead }, { status: 201 });
+  try {
+    const lead = await createLead(ctx, parsed.data);
+    return NextResponse.json({ lead }, { status: 201 });
+  } catch (err) {
+    if (err instanceof PlanLimitError) {
+      return NextResponse.json({ error: err.message, code: "PLAN_LIMIT" }, { status: 402 });
+    }
+    throw err;
+  }
 }

@@ -1,6 +1,8 @@
 import { prisma } from "@/server/db";
 import type { TenantContext } from "@/server/tenant";
 import { scoreLead } from "@/lib/scoring";
+import { getLeadLimit } from "@/server/services/billingService";
+import { PlanLimitError } from "@/lib/plans";
 import type { CreateLeadInput, UpdateLeadInput } from "@/lib/validations/lead";
 
 // ── helpers ─────────────────────────────────────────────────────────────
@@ -135,6 +137,13 @@ export async function createLead(ctx: TenantContext, input: CreateLeadInput): Pr
     include: { assignedUser: { select: { id: true, name: true } } },
   });
   if (existing) return serializeLead(existing);
+
+  // Enforce the plan's lead cap (Free = 50; Pro/Agency = unlimited).
+  const limit = await getLeadLimit(ctx.organizationId);
+  if (limit != null) {
+    const count = await prisma.lead.count({ where: { organizationId: ctx.organizationId } });
+    if (count >= limit) throw new PlanLimitError(limit);
+  }
 
   const lead = await prisma.lead.create({
     data: {

@@ -34,7 +34,7 @@ const NAV: Item[] = [
   { href: "/app/campaigns", label: "Campaigns", icon: Megaphone, minRole: "MANAGER" },
   { href: "/app/reports", label: "Reports", icon: BarChart3, minRole: "MANAGER", live: true },
   { href: "/app/team", label: "Team", icon: UserCog, minRole: "MANAGER", live: true },
-  { href: "/app/settings", label: "Settings", icon: Settings, minRole: "ADMIN" },
+  { href: "/app/settings", label: "Settings", icon: Settings, minRole: "ADMIN", live: true },
 ];
 
 export default function Sidebar({
