@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Loader2, Building2, Gauge, CreditCard, Users } from "lucide-react";
+import { Check, Loader2, Building2, Gauge, CreditCard, Users, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PLANS } from "@/lib/plans";
 import { PLAN_TIERS, type PlanTier } from "@/lib/enums";
@@ -19,7 +19,7 @@ type Billing = {
   seatLimit: number;
 };
 
-export default function SettingsClient({ billing }: { billing: Billing }) {
+export default function SettingsClient({ billing, upgraded }: { billing: Billing; upgraded: string | null }) {
   const router = useRouter();
   const [name, setName] = useState(billing.orgName);
   const [savingName, setSavingName] = useState(false);
@@ -40,11 +40,16 @@ export default function SettingsClient({ billing }: { billing: Billing }) {
   async function switchPlan(plan: PlanTier) {
     if (plan === billing.plan) return;
     setSwitching(plan);
-    const res = await fetch("/api/app/billing", {
+    const res = await fetch("/api/stripe/checkout", {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plan }),
     });
+    const data = await res.json().catch(() => ({}));
+    if (data.url) {
+      window.location.href = data.url; // redirect to Stripe Checkout
+      return;
+    }
     setSwitching(null);
-    if (res.ok) router.refresh();
+    if (res.ok) router.refresh(); // instant switch (Free, or Stripe-not-configured)
   }
 
   const limit = billing.leadLimit;
@@ -57,6 +62,17 @@ export default function SettingsClient({ billing }: { billing: Billing }) {
         <h1 className="text-3xl font-extrabold tracking-tight">Settings</h1>
         <p className="mt-1 text-muted-foreground">Manage your workspace, usage and plan.</p>
       </div>
+
+      {upgraded && PLANS[upgraded as PlanTier] && (
+        <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-800">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 text-white">
+            <Sparkles className="h-4 w-4" />
+          </span>
+          <div className="text-sm">
+            <span className="font-semibold">You’re on {PLANS[upgraded as PlanTier].name}!</span> Your subscription is active — enjoy unlimited leads.
+          </div>
+        </div>
+      )}
 
       {/* Workspace name */}
       <Card className="p-6">

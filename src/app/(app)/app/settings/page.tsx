@@ -6,10 +6,10 @@ import SettingsClient from "./SettingsClient";
 
 export const dynamic = "force-dynamic";
 
-export default async function SettingsPage() {
+export default async function SettingsPage({ searchParams }: { searchParams: { upgraded?: string } }) {
   const ctx = await requireAuth();
   if (!roleAtLeast(ctx.role, "ADMIN")) return <Forbidden need="Admin" />;
 
   const billing = await getBilling(ctx);
-  return <SettingsClient billing={billing} />;
+  return <SettingsClient billing={billing} upgraded={searchParams.upgraded ?? null} />;
 }
