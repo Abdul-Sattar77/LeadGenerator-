@@ -21,7 +21,7 @@ const plans = [
       "Save up to 50 leads",
     ],
     cta: "Get started",
-    href: "/search",
+    href: "/register",
     highlight: false,
   },
   {
@@ -37,7 +37,7 @@ const plans = [
       "Priority support",
     ],
     cta: "Start Pro",
-    href: "/search",
+    href: "/register",
     highlight: true,
   },
   {
@@ -53,7 +53,7 @@ const plans = [
       "API access",
     ],
     cta: "Contact sales",
-    href: "/search",
+    href: "/register",
     highlight: false,
   },
 ];

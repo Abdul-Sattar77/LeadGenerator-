@@ -28,25 +28,40 @@ type Lead = {
   assignedUser: { id: string; name: string } | null;
 };
 
-async function fetchLeads(status: string, q: string): Promise<Lead[]> {
+const PAGE_SIZE = 10;
+
+type LeadPage = { leads: Lead[]; total: number };
+
+async function fetchLeads(status: string, q: string, page: number): Promise<LeadPage> {
   const params = new URLSearchParams();
   if (status) params.set("status", status);
   if (q) params.set("q", q);
+  params.set("page", String(page));
+  params.set("pageSize", String(PAGE_SIZE));
   const res = await fetch(`/api/app/leads?${params.toString()}`);
   if (!res.ok) throw new Error("Failed to load leads");
-  return (await res.json()).leads;
+  const data = await res.json();
+  return { leads: data.leads, total: data.total };
 }
 
 export default function LeadsClient({ members }: { members: Member[] }) {
   const qc = useQueryClient();
-  const [status, setStatus] = useState("");
-  const [q, setQ] = useState("");
+  const [status, setStatusRaw] = useState("");
+  const [q, setQRaw] = useState("");
+  const [page, setPage] = useState(1);
   const [showNew, setShowNew] = useState(false);
 
-  const { data: leads = [], isLoading } = useQuery({
-    queryKey: ["leads", status, q],
-    queryFn: () => fetchLeads(status, q),
+  // Changing a filter resets to page 1.
+  const setStatus = (v: string) => { setStatusRaw(v); setPage(1); };
+  const setQ = (v: string) => { setQRaw(v); setPage(1); };
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["leads", status, q, page],
+    queryFn: () => fetchLeads(status, q, page),
   });
+  const leads = data?.leads ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
@@ -66,7 +81,7 @@ export default function LeadsClient({ members }: { members: Member[] }) {
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight">Leads</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {leads.length} lead{leads.length === 1 ? "" : "s"} in your workspace
+            {total} lead{total === 1 ? "" : "s"} in your workspace
           </p>
         </div>
         <Button variant="gradient" onClick={() => setShowNew(true)}>
@@ -177,6 +192,23 @@ export default function LeadsClient({ members }: { members: Member[] }) {
           </div>
         )}
       </Card>
+
+      {/* Pagination */}
+      {total > PAGE_SIZE && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Page <span className="font-semibold text-foreground">{page}</span> of {totalPages}
+          </p>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+              Previous
+            </Button>
+            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
 
       {showNew && <NewLeadDialog onClose={() => setShowNew(false)} />}
     </div>

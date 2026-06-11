@@ -1,7 +1,10 @@
+import Link from "next/link";
 import { requireAuth } from "@/server/tenant";
 import { prisma } from "@/server/db";
 import Sidebar from "./_components/Sidebar";
 import UserMenu from "./_components/UserMenu";
+import MobileMenuButton from "./_components/MobileMenuButton";
+import { Logo } from "@/components/Logo";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const ctx = await requireAuth();
@@ -18,8 +21,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         role={ctx.role}
       />
       <div className="flex min-h-screen flex-1 flex-col">
-        <header className="sticky top-0 z-40 flex h-16 items-center justify-end border-b border-white/60 bg-white/70 px-6 backdrop-blur-xl">
-          <UserMenu name={ctx.name} role={ctx.role} />
+        <header className="sticky top-0 z-40 flex h-16 items-center justify-between gap-3 border-b border-white/60 bg-white/70 px-4 backdrop-blur-xl sm:px-6">
+          <div className="flex items-center gap-2 md:hidden">
+            <MobileMenuButton />
+            <Link href="/app"><Logo size={26} /></Link>
+          </div>
+          <div className="ml-auto">
+            <UserMenu name={ctx.name} role={ctx.role} />
+          </div>
         </header>
         <main className="flex-1 p-6 lg:p-8">{children}</main>
       </div>

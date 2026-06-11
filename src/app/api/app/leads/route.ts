@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getTenantContext } from "@/server/tenant";
-import { listLeads, createLead } from "@/server/services/leadService";
+import { listLeadsPaged, createLead } from "@/server/services/leadService";
 import { createLeadSchema } from "@/lib/validations/lead";
 import { PlanLimitError } from "@/lib/plans";
 
@@ -11,12 +11,20 @@ export async function GET(request: Request) {
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = new URL(request.url);
-  const leads = await listLeads(ctx, {
-    status: searchParams.get("status") || undefined,
-    q: searchParams.get("q") || undefined,
-    assignedUserId: searchParams.get("assignedUserId") || undefined,
-  });
-  return NextResponse.json({ leads });
+  const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
+  const pageSize = Math.min(50, Math.max(5, parseInt(searchParams.get("pageSize") || "10", 10) || 10));
+
+  const { leads, total } = await listLeadsPaged(
+    ctx,
+    {
+      status: searchParams.get("status") || undefined,
+      q: searchParams.get("q") || undefined,
+      assignedUserId: searchParams.get("assignedUserId") || undefined,
+    },
+    page,
+    pageSize
+  );
+  return NextResponse.json({ leads, total, page, pageSize });
 }
 
 export async function POST(request: Request) {

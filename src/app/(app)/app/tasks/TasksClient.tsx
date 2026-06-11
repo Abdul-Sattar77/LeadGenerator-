@@ -11,6 +11,7 @@ import { TASK_TYPES, TASK_PRIORITIES } from "@/lib/enums";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { LocalTime } from "@/components/ui/local-time";
 
 type Member = { id: string; name: string; role: string };
 type LeadRef = { id: number; name: string };
@@ -40,11 +41,6 @@ const VIEWS = [
   { key: "completed", label: "Completed" },
   { key: "all", label: "All" },
 ];
-
-function fmtDate(iso: string | null): string {
-  if (!iso) return "No due date";
-  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
-}
 
 export default function TasksClient({ members, leads }: { members: Member[]; leads: LeadRef[] }) {
   const qc = useQueryClient();
@@ -162,7 +158,7 @@ export default function TasksClient({ members, leads }: { members: Member[]; lea
                     {t.priority}
                   </span>
                   <span className={cn("w-16 text-right text-xs", overdue ? "font-semibold text-rose-600" : "text-muted-foreground")}>
-                    {overdue ? "Overdue" : fmtDate(t.dueDate)}
+                    {overdue ? "Overdue" : t.dueDate ? <LocalTime iso={t.dueDate} dateOnly /> : "No due date"}
                   </span>
                   <button
                     onClick={() => remove.mutate(t.id)}

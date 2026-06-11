@@ -66,30 +66,57 @@ async function logActivity(
 }
 
 // ── queries (all scoped to ctx.organizationId) ──────────────────────────
-export async function listLeads(
-  ctx: TenantContext,
-  filters: { status?: string; q?: string; assignedUserId?: string } = {}
-): Promise<SerializedLead[]> {
+type LeadFilters = { status?: string; q?: string; assignedUserId?: string };
+
+function leadWhere(ctx: TenantContext, filters: LeadFilters) {
+  return {
+    organizationId: ctx.organizationId,
+    ...(filters.status ? { status: filters.status } : {}),
+    ...(filters.assignedUserId ? { assignedUserId: filters.assignedUserId } : {}),
+    ...(filters.q
+      ? {
+          OR: [
+            { name: { contains: filters.q } },
+            { category: { contains: filters.q } },
+            { address: { contains: filters.q } },
+            { email: { contains: filters.q } },
+          ],
+        }
+      : {}),
+  };
+}
+
+const LEAD_ORDER = [{ leadScore: "desc" as const }, { savedAt: "desc" as const }];
+
+/** All matching leads (no pagination) — used by stats, pipeline, reports, dashboard. */
+export async function listLeads(ctx: TenantContext, filters: LeadFilters = {}): Promise<SerializedLead[]> {
   const rows = await prisma.lead.findMany({
-    where: {
-      organizationId: ctx.organizationId,
-      ...(filters.status ? { status: filters.status } : {}),
-      ...(filters.assignedUserId ? { assignedUserId: filters.assignedUserId } : {}),
-      ...(filters.q
-        ? {
-            OR: [
-              { name: { contains: filters.q } },
-              { category: { contains: filters.q } },
-              { address: { contains: filters.q } },
-              { email: { contains: filters.q } },
-            ],
-          }
-        : {}),
-    },
+    where: leadWhere(ctx, filters),
     include: { assignedUser: { select: { id: true, name: true } } },
-    orderBy: [{ leadScore: "desc" }, { savedAt: "desc" }],
+    orderBy: LEAD_ORDER,
   });
   return rows.map(serializeLead);
+}
+
+/** Paginated leads for the Leads table. */
+export async function listLeadsPaged(
+  ctx: TenantContext,
+  filters: LeadFilters,
+  page: number,
+  pageSize: number
+): Promise<{ leads: SerializedLead[]; total: number }> {
+  const where = leadWhere(ctx, filters);
+  const [rows, total] = await Promise.all([
+    prisma.lead.findMany({
+      where,
+      include: { assignedUser: { select: { id: true, name: true } } },
+      orderBy: LEAD_ORDER,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.lead.count({ where }),
+  ]);
+  return { leads: rows.map(serializeLead), total };
 }
 
 export async function getLead(ctx: TenantContext, id: number) {

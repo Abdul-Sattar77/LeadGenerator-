@@ -12,6 +12,7 @@ import { LEAD_STATUS_META, ACTIVITY_LABEL, statusLabel } from "@/lib/leadStatus"
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
+import { LocalTime } from "@/components/ui/local-time";
 import { ScoreBadge, StatusBadge } from "@/components/leads/badges";
 
 type Member = { id: string; name: string; role: string };
@@ -20,11 +21,6 @@ type Detail = {
   activities: { id: string; type: string; metadata: Record<string, any>; createdAt: string }[];
   notes: { id: string; body: string; createdAt: string }[];
 };
-
-function timeAgo(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
-}
 
 export default function LeadDetailClient({ id, initial, members }: { id: number; initial: Detail; members: Member[] }) {
   const qc = useQueryClient();
@@ -221,7 +217,7 @@ export default function LeadDetailClient({ id, initial, members }: { id: number;
                         )}
                       </p>
                     )}
-                    <p className="text-xs text-muted-foreground">{timeAgo(item.createdAt)}</p>
+                    <LocalTime iso={item.createdAt} className="text-xs text-muted-foreground" />
                   </div>
                 </li>
               ))}
