@@ -1,8 +1,11 @@
 import { Resend } from "resend";
+import nodemailer, { type Transporter } from "nodemailer";
 
-// Email sending with graceful fallback: when RESEND_API_KEY is unset, sends are
-// "simulated" (not delivered) so the full flow — templates, history, open/click
-// tracking — still works in dev/demo without an account.
+// Email sending with graceful fallback. Order of preference:
+//   1. Resend  (RESEND_API_KEY)        — transactional API
+//   2. SMTP    (SMTP_HOST/USER/PASS)   — free: send via your own Gmail/Outlook
+//   3. Simulated                       — no provider; flow still works in demo
+// Templates, history and open/click tracking work in all three modes.
 
 let resend: Resend | null = null;
 function getResend(): Resend | null {
@@ -12,8 +15,24 @@ function getResend(): Resend | null {
   return resend;
 }
 
+let smtp: Transporter | null = null;
+function getSmtp(): Transporter | null {
+  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
+  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return null;
+  if (!smtp) {
+    const port = Number(SMTP_PORT) || 587;
+    smtp = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port,
+      secure: port === 465, // 465 = implicit TLS; 587 = STARTTLS
+      auth: { user: SMTP_USER, pass: SMTP_PASS },
+    });
+  }
+  return smtp;
+}
+
 export function isEmailLive(): boolean {
-  return Boolean(process.env.RESEND_API_KEY);
+  return Boolean(process.env.RESEND_API_KEY || (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS));
 }
 
 export function appUrl(): string {
@@ -51,17 +70,31 @@ export interface SendResult {
 }
 
 export async function sendEmail({ to, subject, html, from }: SendArgs): Promise<SendResult> {
+  const sender = from || process.env.EMAIL_FROM || process.env.SMTP_USER || "LeadFinder <onboarding@resend.dev>";
+
+  // 1) Resend
   const client = getResend();
-  const sender = from || process.env.EMAIL_FROM || "LeadFinder <onboarding@resend.dev>";
-  if (!client) {
-    // No provider configured — simulate a successful send.
-    return { delivered: false };
+  if (client) {
+    try {
+      const { error } = await client.emails.send({ from: sender, to, subject, html });
+      if (error) return { delivered: false, error: error.message };
+      return { delivered: true };
+    } catch (e) {
+      return { delivered: false, error: e instanceof Error ? e.message : "Send failed" };
+    }
   }
-  try {
-    const { error } = await client.emails.send({ from: sender, to, subject, html });
-    if (error) return { delivered: false, error: error.message };
-    return { delivered: true };
-  } catch (e) {
-    return { delivered: false, error: e instanceof Error ? e.message : "Send failed" };
+
+  // 2) SMTP (e.g. free via Gmail app password)
+  const transport = getSmtp();
+  if (transport) {
+    try {
+      await transport.sendMail({ from: sender, to, subject, html });
+      return { delivered: true };
+    } catch (e) {
+      return { delivered: false, error: e instanceof Error ? e.message : "SMTP send failed" };
+    }
   }
+
+  // 3) No provider — simulate.
+  return { delivered: false };
 }
