@@ -21,7 +21,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         plan={org?.subscription?.plan ?? "FREE"}
         role={ctx.role}
       />
-      <div className="flex min-h-screen flex-1 flex-col">
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-40 flex h-16 items-center justify-between gap-3 border-b border-white/60 bg-white/70 px-4 backdrop-blur-xl sm:px-6">
           <div className="flex items-center gap-2 md:hidden">
             <MobileMenuButton />
@@ -32,7 +32,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <UserMenu name={ctx.name} role={ctx.role} />
           </div>
         </header>
-        <main className="flex-1 p-6 lg:p-8">{children}</main>
+        <main className="min-w-0 flex-1 p-6 lg:p-8">{children}</main>
       </div>
     </div>
   );
