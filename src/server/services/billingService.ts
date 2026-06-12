@@ -29,9 +29,11 @@ export async function getBilling(ctx: TenantContext) {
  *  here it updates the subscription directly (instant) so the flow is usable now. */
 export async function setPlan(ctx: TenantContext, tier: PlanTier): Promise<boolean> {
   if (!PLANS[tier]) return false;
-  await prisma.subscription.update({
+  // upsert so an org without a subscription row (edge case) doesn't 500.
+  await prisma.subscription.upsert({
     where: { organizationId: ctx.organizationId },
-    data: { plan: tier, status: "ACTIVE" },
+    update: { plan: tier, status: "ACTIVE" },
+    create: { organizationId: ctx.organizationId, plan: tier, status: "ACTIVE" },
   });
   return true;
 }
@@ -66,7 +68,11 @@ export async function createCheckoutSession(ctx: TenantContext, tier: PlanTier, 
       metadata: { organizationId: ctx.organizationId },
     });
     customerId = customer.id;
-    await prisma.subscription.update({ where: { organizationId: ctx.organizationId }, data: { stripeCustomerId: customerId } });
+    await prisma.subscription.upsert({
+      where: { organizationId: ctx.organizationId },
+      update: { stripeCustomerId: customerId },
+      create: { organizationId: ctx.organizationId, stripeCustomerId: customerId },
+    });
   }
 
   const session = await stripe.checkout.sessions.create({

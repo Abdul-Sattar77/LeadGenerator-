@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getTenantContext } from "@/server/tenant";
+import { isOrgMember } from "@/server/orgGuards";
 import { getLead, updateLead, deleteLead } from "@/server/services/leadService";
 import { updateLeadSchema } from "@/lib/validations/lead";
 
@@ -35,6 +36,9 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       { error: parsed.error.issues[0]?.message ?? "Invalid input." },
       { status: 422 }
     );
+  }
+  if (!(await isOrgMember(ctx, parsed.data.assignedUserId))) {
+    return NextResponse.json({ error: "Invalid assignee." }, { status: 422 });
   }
   const lead = await updateLead(ctx, id, parsed.data);
   if (!lead) return NextResponse.json({ error: "Not found" }, { status: 404 });

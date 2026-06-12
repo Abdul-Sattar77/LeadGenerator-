@@ -189,8 +189,8 @@ model Lead {
   campaignId     String?
 
   organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  assignedUser User?         @relation("LeadAssignee", fields: [assignedUserId], references: [id])
-  campaign     Campaign?     @relation(fields: [campaignId], references: [id])
+  assignedUser User?         @relation("LeadAssignee", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  campaign     Campaign?     @relation(fields: [campaignId], references: [id], onDelete: SetNull)
   activities   Activity[]
   crmNotes     Note[]
   tasks        Task[]
@@ -235,8 +235,8 @@ model Task {
   leadId         Int?
   createdAt      DateTime  @default(now())
 
-  assignedUser User? @relation("TaskAssignee", fields: [assignedUserId], references: [id])
-  createdBy    User? @relation("TaskCreator", fields: [createdById], references: [id])
+  assignedUser User? @relation("TaskAssignee", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  createdBy    User? @relation("TaskCreator", fields: [createdById], references: [id], onDelete: SetNull)
   lead         Lead? @relation(fields: [leadId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, status])

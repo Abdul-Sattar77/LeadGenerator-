@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getTenantContext } from "@/server/tenant";
+import { isOrgMember, isOrgLead } from "@/server/orgGuards";
 import { listTasks, createTask } from "@/server/services/taskService";
 import { createTaskSchema } from "@/lib/validations/task";
 
@@ -28,6 +29,10 @@ export async function POST(request: Request) {
       { error: parsed.error.issues[0]?.message ?? "Invalid input." },
       { status: 422 }
     );
+  }
+  // Don't allow assigning to a user/lead outside the caller's org.
+  if (!(await isOrgMember(ctx, parsed.data.assignedUserId)) || !(await isOrgLead(ctx, parsed.data.leadId))) {
+    return NextResponse.json({ error: "Invalid assignee or lead." }, { status: 422 });
   }
   const task = await createTask(ctx, parsed.data);
   return NextResponse.json({ task }, { status: 201 });

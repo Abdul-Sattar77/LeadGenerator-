@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getTenantContext } from "@/server/tenant";
+import { isOrgMember } from "@/server/orgGuards";
 import { updateTask, deleteTask } from "@/server/services/taskService";
 import { updateTaskSchema } from "@/lib/validations/task";
 
@@ -15,6 +16,9 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       { error: parsed.error.issues[0]?.message ?? "Invalid input." },
       { status: 422 }
     );
+  }
+  if (!(await isOrgMember(ctx, parsed.data.assignedUserId))) {
+    return NextResponse.json({ error: "Invalid assignee." }, { status: 422 });
   }
   const task = await updateTask(ctx, params.id, parsed.data);
   if (!task) return NextResponse.json({ error: "Not found" }, { status: 404 });

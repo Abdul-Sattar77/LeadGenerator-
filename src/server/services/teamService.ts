@@ -67,15 +67,23 @@ export async function addMember(ctx: TenantContext, input: AddMemberInput): Prom
   const tempPassword = crypto.randomBytes(6).toString("base64url"); // ~8 chars
   const passwordHash = await bcrypt.hash(tempPassword, 12);
 
-  await prisma.user.create({
-    data: {
-      organizationId: ctx.organizationId,
-      email: input.email,
-      name: input.name,
-      role: input.role,
-      passwordHash,
-    },
-  });
+  try {
+    await prisma.user.create({
+      data: {
+        organizationId: ctx.organizationId,
+        email: input.email,
+        name: input.name,
+        role: input.role,
+        passwordHash,
+      },
+    });
+  } catch (e) {
+    // Unique-constraint race (two invites, same email) — report cleanly, not a 500.
+    if (e && typeof e === "object" && "code" in e && (e as { code?: string }).code === "P2002") {
+      return { error: "A user with this email already exists." };
+    }
+    throw e;
+  }
   return { tempPassword };
 }
 
@@ -91,11 +99,23 @@ export async function updateMemberRole(ctx: TenantContext, userId: string, role:
 
 export async function removeMember(ctx: TenantContext, userId: string): Promise<boolean> {
   if (userId === ctx.userId) return false; // can't remove yourself
-  // Unassign their leads/tasks first (FK is SetNull-friendly via optional relation).
+
+  // Ensure the target is actually in this org before touching anything.
+  const target = await prisma.user.findFirst({
+    where: { id: userId, organizationId: ctx.organizationId },
+    select: { id: true },
+  });
+  if (!target) return false;
+
+  // Detach explicitly (don't rely on DB-level onDelete, which SQLite may not
+  // enforce) so the delete never fails on a foreign-key reference.
   await prisma.$transaction([
     prisma.lead.updateMany({ where: { organizationId: ctx.organizationId, assignedUserId: userId }, data: { assignedUserId: null } }),
     prisma.task.updateMany({ where: { organizationId: ctx.organizationId, assignedUserId: userId }, data: { assignedUserId: null } }),
+    prisma.task.updateMany({ where: { organizationId: ctx.organizationId, createdById: userId }, data: { createdById: null } }),
+    prisma.notification.deleteMany({ where: { userId } }),
+    prisma.account.deleteMany({ where: { userId } }),
+    prisma.user.delete({ where: { id: userId } }),
   ]);
-  const res = await prisma.user.deleteMany({ where: { id: userId, organizationId: ctx.organizationId } });
-  return res.count > 0;
+  return true;
 }
