@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Phone, Globe, MapPin, Star, Mail, Building2,
-  Loader2, Send, Clock, StickyNote, X, MailCheck, MousePointerClick, Eye,
+  Loader2, Send, Clock, StickyNote, X, MailCheck, MousePointerClick, Eye, Sparkles,
 } from "lucide-react";
 import { LEAD_STATUSES } from "@/lib/enums";
 import { LEAD_STATUS_META, ACTIVITY_LABEL, statusLabel } from "@/lib/leadStatus";
@@ -31,6 +31,26 @@ export default function LeadDetailClient({ id, initial, members, emails }: { id:
   const [note, setNote] = useState("");
   const [showEmail, setShowEmail] = useState(false);
   const [showCall, setShowCall] = useState(false);
+  const [aiText, setAiText] = useState("");
+  const [aiLoading, setAiLoading] = useState<null | "summarize" | "next-step">(null);
+
+  async function runAi(action: "summarize" | "next-step") {
+    setAiLoading(action);
+    setAiText("");
+    try {
+      const res = await fetch("/api/app/ai", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, leadId: id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "AI request failed.");
+      setAiText(data.text || "");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setAiLoading(null);
+    }
+  }
 
   const { data } = useQuery({
     queryKey: ["lead", id],
@@ -192,6 +212,25 @@ export default function LeadDetailClient({ id, initial, members, emails }: { id:
 
         {/* Notes + timeline */}
         <div className="space-y-6 lg:col-span-2">
+          <Card className="relative overflow-hidden p-5">
+            <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-gradient-to-br from-indigo-300/30 to-fuchsia-300/30 blur-2xl" />
+            <h2 className="relative flex items-center gap-2 font-semibold">
+              <span className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-indigo-500 to-violet-500 text-white"><Sparkles className="h-3.5 w-3.5" /></span>
+              AI assistant
+            </h2>
+            <div className="relative mt-3 flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" onClick={() => runAi("summarize")} disabled={!!aiLoading}>
+                {aiLoading === "summarize" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Summarize lead
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => runAi("next-step")} disabled={!!aiLoading}>
+                {aiLoading === "next-step" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Suggest next step
+              </Button>
+            </div>
+            {aiText && (
+              <div className="relative mt-3 whitespace-pre-wrap rounded-xl bg-secondary/50 p-3 text-sm">{aiText}</div>
+            )}
+          </Card>
+
           <Card className="p-5">
             <h2 className="flex items-center gap-2 font-semibold">
               <StickyNote className="h-4 w-4" /> Add a note
@@ -396,11 +435,31 @@ function SendEmailDialog({ leadId, toEmail, leadName, onClose, onSent }: { leadI
   const [body, setBody] = useState("");
   const [templateId, setTemplateId] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [drafting, setDrafting] = useState(false);
 
   const { data: templates = [] } = useQuery({
     queryKey: ["templates"],
     queryFn: async () => (await (await fetch("/api/app/templates")).json()).templates as { id: string; name: string; subject: string; body: string }[],
   });
+
+  async function draftWithAi() {
+    setDrafting(true);
+    try {
+      const res = await fetch("/api/app/ai", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "email", leadId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "AI request failed.");
+      setTemplateId(null);
+      if (data.subject) setSubject(data.subject);
+      if (data.body) setBody(data.body);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setDrafting(false);
+    }
+  }
 
   function applyTemplate(tid: string) {
     const t = templates.find((x) => x.id === tid);
@@ -431,7 +490,13 @@ function SendEmailDialog({ leadId, toEmail, leadName, onClose, onSent }: { leadI
           <h2 className="text-lg font-bold">Email {leadName}</h2>
           <button onClick={onClose} className="rounded-md p-1 text-muted-foreground hover:bg-secondary"><X className="h-5 w-5" /></button>
         </div>
-        <p className="mt-1 text-sm text-muted-foreground">To: <span className="font-medium text-foreground">{toEmail}</span></p>
+        <div className="mt-1 flex items-center justify-between gap-2">
+          <p className="text-sm text-muted-foreground">To: <span className="font-medium text-foreground">{toEmail}</span></p>
+          <button onClick={draftWithAi} disabled={drafting}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-indigo-500/10 to-violet-500/10 px-2.5 py-1 text-xs font-semibold text-primary ring-1 ring-primary/15 transition hover:from-indigo-500/20 hover:to-violet-500/20 disabled:opacity-60">
+            {drafting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />} Draft with AI
+          </button>
+        </div>
 
         <div className="mt-4 space-y-3 overflow-y-auto">
           <label className="block">
