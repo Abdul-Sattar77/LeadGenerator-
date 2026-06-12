@@ -302,9 +302,9 @@ export default function HomePage() {
                 </li>
               ))}
             </ul>
-            <Link href="/search" className="mt-7 inline-block">
+            <Link href="/register" className="mt-7 inline-block">
               <Button variant="gradient" size="lg">
-                <Search className="h-5 w-5" /> Try it now
+                <Search className="h-5 w-5" /> Get started free
               </Button>
             </Link>
           </motion.div>
@@ -418,9 +418,9 @@ export default function HomePage() {
               Ready to find your next 60 customers?
             </h2>
             <p className="relative mx-auto mt-4 max-w-xl text-white/85">
-              Run your first search now — no account required.
+              Create your free account — no credit card required.
             </p>
-            <Link href="/search" className="relative mt-8 inline-block">
+            <Link href="/register" className="relative mt-8 inline-block">
               <Button size="lg" className="bg-white text-primary hover:bg-white/90">
                 <Search className="h-5 w-5" />
                 Start finding leads
@@ -439,9 +439,9 @@ export default function HomePage() {
             © 2026 LeadFinder. Built for sales teams.
           </span>
           <div className="flex gap-5">
-            <Link href="/search" className="hover:text-foreground">Find Leads</Link>
             <Link href="/pricing" className="hover:text-foreground">Pricing</Link>
-            <Link href="/dashboard" className="hover:text-foreground">Dashboard</Link>
+            <Link href="/login" className="hover:text-foreground">Sign in</Link>
+            <Link href="/register" className="hover:text-foreground">Get started</Link>
           </div>
         </div>
       </footer>

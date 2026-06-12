@@ -2,7 +2,6 @@ import localFont from "next/font/local";
 import "./globals.css";
 import Providers from "./providers";
 import ConditionalNavbar from "@/components/ConditionalNavbar";
-import { PriorityProvider } from "@/components/PriorityProvider";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -28,10 +27,8 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body className={`${geistSans.variable} font-sans antialiased`}>
         <Providers>
-          <PriorityProvider>
-            <ConditionalNavbar />
-            <main>{children}</main>
-          </PriorityProvider>
+          <ConditionalNavbar />
+          <main>{children}</main>
         </Providers>
       </body>
     </html>

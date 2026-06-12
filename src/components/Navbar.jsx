@@ -10,9 +10,6 @@ import { LogoMark } from "@/components/Logo";
 
 const links = [
   { href: "/", label: "Home" },
-  { href: "/search", label: "Find Leads" },
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/priorities", label: "Priorities" },
   { href: "/pricing", label: "Pricing" },
 ];
 

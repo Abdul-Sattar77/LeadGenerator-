@@ -9,8 +9,9 @@ const COUNTS = [20, 40, 60];
 
 /**
  * "What / Where" search bar.
- * - If `onSubmit(query, max)` is provided, it calls that (used on /search).
- * - Otherwise it routes to /search?q=...&max=... (used on the landing hero).
+ * - If `onSubmit(query, max)` is provided, it calls that.
+ * - Otherwise (landing hero) it sends the visitor to sign up — the real
+ *   search lives in the authenticated CRM at /app/discover.
  */
 export default function SearchBar({
   onSubmit,
@@ -39,7 +40,7 @@ export default function SearchBar({
     if (onSubmit) {
       onSubmit(query, max);
     } else {
-      router.push(`/search?q=${encodeURIComponent(query)}&max=${max}`);
+      router.push("/register");
     }
   }
 
