@@ -35,6 +35,9 @@ export type TaskStatus = (typeof TASK_STATUSES)[number];
 export const TASK_PRIORITIES = ["LOW", "MEDIUM", "HIGH", "URGENT"] as const;
 export type TaskPriority = (typeof TASK_PRIORITIES)[number];
 
+export const CAMPAIGN_STATUSES = ["DRAFT", "RUNNING", "COMPLETED"] as const;
+export type CampaignStatus = (typeof CAMPAIGN_STATUSES)[number];
+
 // Role hierarchy — higher number = more privilege. Used by requireRole().
 export const ROLE_RANK: Record<Role, number> = {
   VIEWER: 0,

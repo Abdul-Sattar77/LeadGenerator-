@@ -35,6 +35,7 @@ export function serializeLead(row: NonNullable<LeadRow> & { assignedUser?: { id:
     source: row.source,
     status: row.status,
     leadScore: row.leadScore,
+    campaignId: row.campaignId,
     dealValue: row.dealValue != null ? Number(row.dealValue) : null,
     expectedCloseDate: row.expectedCloseDate ? row.expectedCloseDate.toISOString() : null,
     scoreBreakdown: parseJson<Record<string, number>>(row.scoreBreakdown, {}),

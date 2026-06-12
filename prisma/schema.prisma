@@ -27,6 +27,23 @@ model Organization {
   pipelines    Pipeline[]
   subscription Subscription?
   leads        Lead[]
+  campaigns    Campaign[]
+}
+
+// Outreach campaigns — group leads for coordinated follow-up.
+model Campaign {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  description    String   @default("")
+  status         String   @default("DRAFT") // DRAFT | RUNNING | COMPLETED
+  createdById    String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  leads        Lead[]
+
+  @@index([organizationId])
 }
 
 model User {
@@ -169,9 +186,11 @@ model Lead {
   scoreBreakdown String? // JSON-encoded {factor: points}
   dealValue      Decimal? // potential/closed deal value (the lead = the opportunity)
   expectedCloseDate DateTime?
+  campaignId     String?
 
   organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   assignedUser User?         @relation("LeadAssignee", fields: [assignedUserId], references: [id])
+  campaign     Campaign?     @relation(fields: [campaignId], references: [id])
   activities   Activity[]
   crmNotes     Note[]
   tasks        Task[]
@@ -181,6 +200,7 @@ model Lead {
 
   @@index([organizationId, status])
   @@index([assignedUserId])
+  @@index([campaignId])
 }
 
 // Chronological audit trail shown on the lead timeline.
