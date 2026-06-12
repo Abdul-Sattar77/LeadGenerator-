@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ScoreBadge } from "@/components/leads/badges";
+import { toast } from "@/stores/toastStore";
 
 type Member = { id: string; name: string; role: string };
 type Lead = {
@@ -73,6 +74,7 @@ export default function LeadsClient({ members }: { members: Member[] }) {
       if (!res.ok) throw new Error("Update failed");
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["leads"] }),
+    onError: () => toast.error("Couldn’t update the lead status."),
   });
 
   return (

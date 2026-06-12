@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { scoreLead } from "@/lib/scoring";
+import { toast } from "@/stores/toastStore";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
@@ -88,24 +89,33 @@ export default function DiscoverClient() {
           source: "GOOGLE_MAPS",
         }),
       });
-      if (!res.ok) throw new Error();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Couldn’t save this lead.");
       setSaved((s) => ({ ...s, [k]: "saved" }));
-    } catch {
+    } catch (e) {
       setSaved((s) => {
         const next = { ...s };
         delete next[k];
         return next;
       });
+      toast.error((e as Error).message); // e.g. plan lead-limit reached
+      throw e; // let saveAll stop on limit errors
     }
   }
 
   async function saveAll() {
     setSavingAll(true);
-    for (const r of results) {
-      // eslint-disable-next-line no-await-in-loop
-      await saveOne(r);
+    try {
+      for (const r of results) {
+        // eslint-disable-next-line no-await-in-loop
+        await saveOne(r); // throws on error (e.g. plan limit) — stop the batch
+      }
+      toast.success("Saved to CRM.");
+    } catch {
+      /* saveOne already surfaced the error toast */
+    } finally {
+      setSavingAll(false);
     }
-    setSavingAll(false);
   }
 
   const savedCount = Object.values(saved).filter((v) => v === "saved").length;

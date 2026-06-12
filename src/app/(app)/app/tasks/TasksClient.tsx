@@ -12,6 +12,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LocalTime } from "@/components/ui/local-time";
+import { toast } from "@/stores/toastStore";
 
 type Member = { id: string; name: string; role: string };
 type LeadRef = { id: number; name: string };
@@ -66,6 +67,7 @@ export default function TasksClient({ members, leads }: { members: Member[]; lea
       if (!res.ok) throw new Error("Update failed");
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
+    onError: () => toast.error("Couldn’t update the task."),
   });
 
   const remove = useMutation({
@@ -73,7 +75,8 @@ export default function TasksClient({ members, leads }: { members: Member[]; lea
       const res = await fetch(`/api/app/tasks/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Delete failed");
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["tasks"] }); toast.success("Task deleted."); },
+    onError: () => toast.error("Couldn’t delete the task."),
   });
 
   return (
@@ -161,7 +164,7 @@ export default function TasksClient({ members, leads }: { members: Member[]; lea
                     {overdue ? "Overdue" : t.dueDate ? <LocalTime iso={t.dueDate} dateOnly /> : "No due date"}
                   </span>
                   <button
-                    onClick={() => remove.mutate(t.id)}
+                    onClick={() => { if (confirm(`Delete task “${t.title}”?`)) remove.mutate(t.id); }}
                     className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-rose-600"
                     title="Delete task"
                   >

@@ -15,6 +15,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge, ScoreBadge } from "@/components/leads/badges";
 import { LeadsByStage } from "../../DashboardCharts";
+import { toast } from "@/stores/toastStore";
 
 type Lead = { id: number; name: string; category: string; status: string; leadScore: number; dealValue: number | null; assignedUser: { id: string; name: string } | null };
 type Data = {
@@ -33,12 +34,14 @@ export default function CampaignDetailClient({ id, initial, addable }: { id: str
 
   async function setStatus(status: string) {
     setBusy(true);
-    await fetch(`/api/app/campaigns/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
+    const res = await fetch(`/api/app/campaigns/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
     setBusy(false);
+    if (!res.ok) { toast.error("Couldn’t update the campaign."); return; }
     router.refresh();
   }
   async function removeLead(leadId: number) {
-    await fetch(`/api/app/campaigns/${id}/leads?leadId=${leadId}`, { method: "DELETE" });
+    const res = await fetch(`/api/app/campaigns/${id}/leads?leadId=${leadId}`, { method: "DELETE" });
+    if (!res.ok) { toast.error("Couldn’t remove the lead."); return; }
     router.refresh();
   }
   async function del() {
@@ -166,10 +169,12 @@ function AddLeadsDialog({ id, addable, onClose, onDone }: { id: string; addable:
   async function save() {
     if (selected.size === 0) return;
     setSaving(true);
-    await fetch(`/api/app/campaigns/${id}/leads`, {
+    const res = await fetch(`/api/app/campaigns/${id}/leads`, {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ leadIds: [...selected] }),
     });
     setSaving(false);
+    if (!res.ok) { toast.error("Couldn’t add the leads."); return; }
+    toast.success(`Added ${selected.size} lead${selected.size === 1 ? "" : "s"}.`);
     onDone();
   }
 

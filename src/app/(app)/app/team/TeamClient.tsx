@@ -8,6 +8,7 @@ import { ROLES } from "@/lib/enums";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
+import { toast } from "@/stores/toastStore";
 
 type Member = {
   id: string; name: string; email: string; role: string; isSelf: boolean;
@@ -41,6 +42,7 @@ export default function TeamClient({ initial, isAdmin }: { initial: Member[]; is
       if (!res.ok) throw new Error();
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["team"] }),
+    onError: () => toast.error("Couldn’t change the role."),
   });
 
   const remove = useMutation({
@@ -48,7 +50,8 @@ export default function TeamClient({ initial, isAdmin }: { initial: Member[]; is
       const res = await fetch(`/api/app/team/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["team"] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["team"] }); toast.success("Member removed."); },
+    onError: () => toast.error("Couldn’t remove the member."),
   });
 
   return (
@@ -114,7 +117,7 @@ export default function TeamClient({ initial, isAdmin }: { initial: Member[]; is
                   {isAdmin && (
                     <td className="px-4 py-3 text-right">
                       {!m.isSelf && (
-                        <button onClick={() => remove.mutate(m.id)} className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-rose-600" title="Remove member">
+                        <button onClick={() => { if (confirm(`Remove ${m.name} from the workspace?`)) remove.mutate(m.id); }} className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-rose-600" title="Remove member">
                           <Trash2 className="h-4 w-4" />
                         </button>
                       )}

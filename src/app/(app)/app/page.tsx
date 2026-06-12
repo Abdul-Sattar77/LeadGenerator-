@@ -67,6 +67,35 @@ export default async function OverviewPage() {
         </div>
       </div>
 
+      {kpis.totalLeads === 0 ? (
+        <Card className="relative overflow-hidden p-8 sm:p-10">
+          <div className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full bg-indigo-300/30 blur-3xl" />
+          <div className="relative max-w-xl">
+            <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 text-white shadow-soft">
+              <Search className="h-6 w-6" />
+            </span>
+            <h2 className="mt-4 text-2xl font-bold tracking-tight">Let’s find your first leads</h2>
+            <p className="mt-2 text-muted-foreground">
+              Your workspace is ready. Search Google Maps for any business type and city, then
+              save the results into your CRM — they’ll show up here with scores, pipeline and tasks.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-2">
+              <Link href="/app/discover" className="inline-flex h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 text-sm font-semibold text-white shadow-soft transition hover:opacity-95 hover:shadow-glow">
+                <Search className="h-4 w-4" /> Discover leads
+              </Link>
+              <Link href="/app/leads" className="inline-flex h-11 items-center gap-2 rounded-xl border border-border bg-card px-5 text-sm font-semibold transition hover:bg-secondary">
+                <Plus className="h-4 w-4" /> Add a lead manually
+              </Link>
+            </div>
+            <ol className="mt-6 space-y-1.5 text-sm text-muted-foreground">
+              <li>1 · Discover &amp; save leads from Google Maps</li>
+              <li>2 · Drag them through your sales pipeline</li>
+              <li>3 · Track follow-ups with tasks &amp; reminders</li>
+            </ol>
+          </div>
+        </Card>
+      ) : (
+        <>
       {/* KPI cards */}
       <KpiRow items={kpiCards} />
 
@@ -159,6 +188,8 @@ export default async function OverviewPage() {
           )}
         </Card>
       </div>
+        </>
+      )}
     </div>
   );
 }
