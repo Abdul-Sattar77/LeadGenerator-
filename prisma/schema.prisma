@@ -144,9 +144,10 @@ model Account {
   userId            String
   provider          String
   providerAccountId String
+  email             String? // connected mailbox address (e.g. the user's Gmail)
   accessToken       String?
   refreshToken      String?
-  expiresAt         Int?
+  expiresAt         Int? // epoch seconds when accessToken expires
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])

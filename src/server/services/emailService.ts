@@ -1,6 +1,7 @@
 import { prisma } from "@/server/db";
 import type { TenantContext } from "@/server/tenant";
-import { sendEmail, renderTemplate, rewriteLinksForTracking, trackingPixel } from "@/lib/email";
+import { renderTemplate, rewriteLinksForTracking, trackingPixel } from "@/lib/email";
+import { sendForUser } from "@/server/services/userMailService";
 
 // Seeded for every org on first use.
 const DEFAULT_TEMPLATES = [
@@ -101,7 +102,8 @@ export async function sendToLead(
   });
 
   const html = rewriteLinksForTracking(textToHtml(bodyText), msg.trackingId) + trackingPixel(msg.trackingId);
-  const result = await sendEmail({ to: lead.email, subject, html });
+  // Send from the user's connected Gmail when available, else the system mailer.
+  const result = await sendForUser(ctx.userId, { to: lead.email, subject, html });
 
   const status = result.error ? "FAILED" : result.delivered ? "SENT" : "SIMULATED";
   await prisma.emailMessage.update({

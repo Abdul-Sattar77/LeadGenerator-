@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Loader2, Building2, Gauge, CreditCard, Users, Sparkles } from "lucide-react";
+import { Check, Loader2, Building2, Gauge, CreditCard, Users, Sparkles, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PLANS } from "@/lib/plans";
 import { PLAN_TIERS, type PlanTier } from "@/lib/enums";
+import { toast } from "@/stores/toastStore";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -19,12 +20,27 @@ type Billing = {
   seatLimit: number;
 };
 
-export default function SettingsClient({ billing, upgraded }: { billing: Billing; upgraded: string | null }) {
+export default function SettingsClient({ billing, upgraded, gmail, googleConfigured, gmailStatus }: {
+  billing: Billing;
+  upgraded: string | null;
+  gmail: { email: string } | null;
+  googleConfigured: boolean;
+  gmailStatus: string | null;
+}) {
   const router = useRouter();
   const [name, setName] = useState(billing.orgName);
   const [savingName, setSavingName] = useState(false);
   const [nameSaved, setNameSaved] = useState(false);
   const [switching, setSwitching] = useState<PlanTier | null>(null);
+  const [disconnecting, setDisconnecting] = useState(false);
+
+  async function disconnectGmail() {
+    setDisconnecting(true);
+    await fetch("/api/google/disconnect", { method: "POST" });
+    setDisconnecting(false);
+    toast.success("Gmail disconnected.");
+    router.refresh();
+  }
 
   async function saveName(e: React.FormEvent) {
     e.preventDefault();
@@ -94,6 +110,46 @@ export default function SettingsClient({ billing, upgraded }: { billing: Billing
             {nameSaved ? "Saved" : "Save"}
           </Button>
         </form>
+      </Card>
+
+      {/* Email sending */}
+      <Card className="p-6">
+        <div className="mb-1 flex items-center gap-2">
+          <Mail className="h-4 w-4 text-muted-foreground" />
+          <h2 className="font-semibold">Email sending</h2>
+        </div>
+        <p className="text-sm text-muted-foreground">Connect your Gmail so outreach emails are sent from your own address.</p>
+
+        {gmailStatus === "connected" && <p className="mt-3 text-sm font-medium text-emerald-600">✓ Gmail connected.</p>}
+        {gmailStatus === "denied" && <p className="mt-3 text-sm font-medium text-amber-600">You declined the Google permission.</p>}
+        {gmailStatus === "error" && <p className="mt-3 text-sm font-medium text-destructive">Something went wrong connecting Gmail. Try again.</p>}
+        {gmailStatus === "unconfigured" && <p className="mt-3 text-sm font-medium text-amber-600">Gmail connect isn’t set up by the admin yet.</p>}
+
+        <div className="mt-4">
+          {!googleConfigured ? (
+            <div className="rounded-xl border border-border bg-secondary/40 p-4 text-sm text-muted-foreground">
+              Gmail connect isn’t configured. An admin needs to add <code className="rounded bg-card px-1">GOOGLE_CLIENT_ID</code> and{" "}
+              <code className="rounded bg-card px-1">GOOGLE_CLIENT_SECRET</code> to the environment. Until then, emails use the system mailer.
+            </div>
+          ) : gmail ? (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+              <div className="flex items-center gap-3">
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-emerald-600 shadow-sm"><Mail className="h-4 w-4" /></span>
+                <div>
+                  <div className="text-sm font-semibold text-emerald-800">{gmail.email}</div>
+                  <div className="text-xs text-emerald-700/80">Outreach sends from this address.</div>
+                </div>
+              </div>
+              <Button variant="outline" onClick={disconnectGmail} disabled={disconnecting}>
+                {disconnecting && <Loader2 className="h-4 w-4 animate-spin" />} Disconnect
+              </Button>
+            </div>
+          ) : (
+            <a href="/api/google/connect" className="inline-flex h-11 items-center gap-2 rounded-xl border border-border bg-card px-5 text-sm font-semibold shadow-soft transition hover:bg-secondary">
+              <Mail className="h-4 w-4" /> Connect Gmail
+            </a>
+          )}
+        </div>
       </Card>
 
       {/* Usage */}
