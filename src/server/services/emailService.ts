@@ -72,7 +72,7 @@ function serializeEmail(m: { id: string; toEmail: string; subject: string; statu
 
 export async function sendToLead(
   ctx: TenantContext,
-  input: { leadId: number; subject: string; body: string; templateId?: string | null }
+  input: { leadId: number; subject: string; body: string; templateId?: string | null; campaignId?: string | null }
 ): Promise<{ ok: true; delivered: boolean } | { ok: false; error: string }> {
   const lead = await prisma.lead.findFirst({
     where: { id: input.leadId, organizationId: ctx.organizationId },
@@ -91,6 +91,7 @@ export async function sendToLead(
       organizationId: ctx.organizationId,
       leadId: lead.id,
       templateId: input.templateId ?? null,
+      campaignId: input.campaignId ?? null,
       fromUserId: ctx.userId,
       toEmail: lead.email,
       subject,
@@ -116,4 +117,44 @@ export async function sendToLead(
 
   if (result.error) return { ok: false, error: result.error };
   return { ok: true, delivered: result.delivered };
+}
+
+/** Send a templated email to every lead in a campaign that has an email address. */
+export async function sendCampaignEmails(
+  ctx: TenantContext,
+  campaignId: string,
+  input: { subject: string; body: string; templateId?: string | null }
+): Promise<{ sent: number; skipped: number }> {
+  const leads = await prisma.lead.findMany({
+    where: { organizationId: ctx.organizationId, campaignId },
+    select: { id: true, email: true },
+  });
+
+  let sent = 0;
+  let skipped = 0;
+  for (const lead of leads) {
+    if (!lead.email) { skipped++; continue; }
+    const res = await sendToLead(ctx, { leadId: lead.id, subject: input.subject, body: input.body, templateId: input.templateId, campaignId });
+    if (res.ok) sent++;
+    else skipped++;
+  }
+  return { sent, skipped };
+}
+
+/** Aggregate email engagement for a campaign. */
+export async function campaignEmailStats(ctx: TenantContext, campaignId: string) {
+  const rows = await prisma.emailMessage.findMany({
+    where: { organizationId: ctx.organizationId, campaignId },
+    select: { status: true },
+  });
+  const sent = rows.length;
+  const opened = rows.filter((r) => r.status === "OPENED" || r.status === "CLICKED").length;
+  const clicked = rows.filter((r) => r.status === "CLICKED").length;
+  return {
+    sent,
+    opened,
+    clicked,
+    openRate: sent ? Math.round((opened / sent) * 100) : 0,
+    clickRate: sent ? Math.round((clicked / sent) * 100) : 0,
+  };
 }

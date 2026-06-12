@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft, Users, Trophy, DollarSign, TrendingUp, Plus, X, Loader2, Trash2, Megaphone,
+  ArrowLeft, Users, Trophy, DollarSign, TrendingUp, Plus, X, Loader2, Trash2, Megaphone, Mail, Eye, MousePointerClick,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CAMPAIGN_STATUSES } from "@/lib/enums";
@@ -18,10 +18,11 @@ import { LeadsByStage } from "../../DashboardCharts";
 import { toast } from "@/stores/toastStore";
 
 type Lead = { id: number; name: string; category: string; status: string; leadScore: number; dealValue: number | null; assignedUser: { id: string; name: string } | null };
+type EmailStats = { sent: number; opened: number; clicked: number; openRate: number; clickRate: number };
 type Data = {
   campaign: { id: string; name: string; description: string; status: string; createdAt: string };
   leads: Lead[];
-  stats: { total: number; wonCount: number; wonValue: number; pipelineValue: number; byStatus: { status: string; count: number }[] };
+  stats: { total: number; withEmail: number; wonCount: number; wonValue: number; pipelineValue: number; byStatus: { status: string; count: number }[]; email: EmailStats };
 };
 
 function fmtMoney(n: number) { return n >= 1000 ? `$${(n / 1000).toFixed(1)}k` : `$${n}`; }
@@ -31,6 +32,7 @@ export default function CampaignDetailClient({ id, initial, addable }: { id: str
   const { campaign, leads, stats } = initial;
   const [busy, setBusy] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
+  const [showEmail, setShowEmail] = useState(false);
 
   async function setStatus(status: string) {
     setBusy(true);
@@ -83,11 +85,27 @@ export default function CampaignDetailClient({ id, initial, addable }: { id: str
           >
             {CAMPAIGN_STATUSES.map((s) => <option key={s} value={s}>{CAMPAIGN_STATUS_META[s].label}</option>)}
           </select>
+          <Button variant="gradient" onClick={() => setShowEmail(true)} disabled={stats.withEmail === 0} title={stats.withEmail ? "Email this campaign" : "No leads with an email address"}>
+            <Mail className="h-4 w-4" /> Email campaign
+          </Button>
           <Button variant="outline" onClick={del} className="text-rose-600 hover:bg-rose-50">
             <Trash2 className="h-4 w-4" /> Delete
           </Button>
         </div>
       </div>
+
+      {/* Email engagement */}
+      {stats.email.sent > 0 && (
+        <Card className="p-5">
+          <h2 className="flex items-center gap-2 font-semibold"><Mail className="h-4 w-4" /> Email engagement</h2>
+          <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <Stat label="Sent" value={stats.email.sent} />
+            <Stat label="Opened" value={stats.email.opened} icon={<Eye className="h-3.5 w-3.5" />} />
+            <Stat label="Open rate" value={`${stats.email.openRate}%`} tone="text-emerald-600" />
+            <Stat label="Click rate" value={`${stats.email.clickRate}%`} tone="text-violet-600" icon={<MousePointerClick className="h-3.5 w-3.5" />} />
+          </div>
+        </Card>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -157,6 +175,96 @@ export default function CampaignDetailClient({ id, initial, addable }: { id: str
       </div>
 
       {showAdd && <AddLeadsDialog id={id} addable={addable} onClose={() => setShowAdd(false)} onDone={() => { setShowAdd(false); router.refresh(); }} />}
+      {showEmail && (
+        <CampaignEmailDialog
+          id={id}
+          recipients={stats.withEmail}
+          onClose={() => setShowEmail(false)}
+          onSent={() => { setShowEmail(false); router.refresh(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function Stat({ label, value, tone, icon }: { label: string; value: string | number; tone?: string; icon?: React.ReactNode }) {
+  return (
+    <div>
+      <div className={cn("flex items-center gap-1 text-2xl font-extrabold tracking-tight", tone)}>{icon}{value}</div>
+      <div className="text-xs text-muted-foreground">{label}</div>
+    </div>
+  );
+}
+
+function CampaignEmailDialog({ id, recipients, onClose, onSent }: { id: string; recipients: number; onClose: () => void; onSent: () => void }) {
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [templateId, setTemplateId] = useState<string | null>(null);
+  const [templates, setTemplates] = useState<{ id: string; name: string; subject: string; body: string }[]>([]);
+  const [sending, setSending] = useState(false);
+
+  // Load templates once.
+  useEffect(() => {
+    fetch("/api/app/templates").then((r) => r.json()).then((d) => setTemplates(d.templates || [])).catch(() => {});
+  }, []);
+
+  function applyTemplate(tid: string) {
+    const t = templates.find((x) => x.id === tid);
+    if (!t) return;
+    setTemplateId(t.id); setSubject(t.subject); setBody(t.body);
+  }
+
+  async function send() {
+    if (!subject.trim() || !body.trim()) return;
+    setSending(true);
+    const res = await fetch(`/api/app/campaigns/${id}/email`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ subject, body, templateId }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setSending(false);
+    if (!res.ok) { toast.error(data.error || "Couldn’t send."); return; }
+    toast.success(`Sent to ${data.sent} lead${data.sent === 1 ? "" : "s"}${data.skipped ? ` · ${data.skipped} skipped` : ""}.`);
+    onSent();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <Card className="flex max-h-[85vh] w-full max-w-lg flex-col p-6" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold">Email campaign</h2>
+          <button onClick={onClose} className="rounded-md p-1 text-muted-foreground hover:bg-secondary"><X className="h-5 w-5" /></button>
+        </div>
+        <p className="mt-1 text-sm text-muted-foreground">Sends to <span className="font-semibold text-foreground">{recipients}</span> lead{recipients === 1 ? "" : "s"} with an email. <span className="text-muted-foreground/70">{"{{name}}"} / {"{{contact}}"} are personalised per lead.</span></p>
+
+        <div className="mt-4 space-y-3 overflow-y-auto">
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-muted-foreground">Template</span>
+            <select value={templateId ?? ""} onChange={(e) => applyTemplate(e.target.value)}
+              className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <option value="">Start from scratch…</option>
+              {templates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-muted-foreground">Subject</span>
+            <input value={subject} onChange={(e) => setSubject(e.target.value)}
+              className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-muted-foreground">Message</span>
+            <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={8}
+              className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+          </label>
+        </div>
+
+        <div className="mt-4 flex items-center justify-end gap-2 border-t border-border pt-4">
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button variant="gradient" onClick={send} disabled={sending || !subject.trim() || !body.trim()}>
+            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />} Send to {recipients}
+          </Button>
+        </div>
+      </Card>
     </div>
   );
 }

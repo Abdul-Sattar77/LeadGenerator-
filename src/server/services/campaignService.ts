@@ -1,6 +1,7 @@
 import { prisma } from "@/server/db";
 import type { TenantContext } from "@/server/tenant";
 import { serializeLead } from "@/server/services/leadService";
+import { campaignEmailStats } from "@/server/services/emailService";
 import { LEAD_STATUSES } from "@/lib/enums";
 import { z } from "zod";
 import type { createCampaignSchema, updateCampaignSchema } from "@/lib/validations/campaign";
@@ -63,6 +64,8 @@ export async function getCampaign(ctx: TenantContext, id: string) {
 
   const byStatus = LEAD_STATUSES.map((s) => ({ status: s, count: leads.filter((l) => l.status === s).length }));
   const won = leads.filter((l) => l.status === "WON");
+  const emailStats = await campaignEmailStats(ctx, id);
+  const withEmail = leads.filter((l) => Boolean((l as { email?: string }).email)).length;
 
   return {
     campaign: {
@@ -75,10 +78,12 @@ export async function getCampaign(ctx: TenantContext, id: string) {
     leads,
     stats: {
       total: leads.length,
+      withEmail,
       wonCount: won.length,
       wonValue: won.reduce((s, l) => s + (l.dealValue ?? 0), 0),
       pipelineValue: leads.filter((l) => l.status !== "WON" && l.status !== "LOST").reduce((s, l) => s + (l.dealValue ?? 0), 0),
       byStatus,
+      email: emailStats,
     },
   };
 }
