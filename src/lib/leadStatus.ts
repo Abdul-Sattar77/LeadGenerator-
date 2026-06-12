@@ -76,4 +76,5 @@ export const ACTIVITY_LABEL: Record<string, string> = {
   TASK_CREATED: "Task created",
   TASK_COMPLETED: "Task completed",
   EMAIL_SENT: "Email sent",
+  CALL_LOGGED: "Call logged",
 };

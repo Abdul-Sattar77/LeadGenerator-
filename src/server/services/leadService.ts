@@ -268,6 +268,59 @@ export async function deleteLead(ctx: TenantContext, id: number): Promise<boolea
   return res.count > 0;
 }
 
+/** Records a phone call (note + CALL_LOGGED activity) and an optional follow-up reminder task. */
+export async function logCall(
+  ctx: TenantContext,
+  leadId: number,
+  input: { summary: string; outcome?: string; reminderAt?: string | null; reminderTitle?: string }
+): Promise<{ ok: true; reminderCreated: boolean } | { ok: false; error: string }> {
+  const lead = await prisma.lead.findFirst({
+    where: { id: leadId, organizationId: ctx.organizationId },
+    select: { id: true, name: true },
+  });
+  if (!lead) return { ok: false, error: "Lead not found." };
+
+  await prisma.note.create({
+    data: {
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
+      leadId,
+      body: `📞 Call${input.outcome ? ` (${input.outcome})` : ""}: ${input.summary}`,
+    },
+  });
+  await prisma.activity.create({
+    data: {
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
+      leadId,
+      type: "CALL_LOGGED",
+      metadata: input.outcome ? JSON.stringify({ outcome: input.outcome }) : null,
+    },
+  });
+
+  let reminderCreated = false;
+  if (input.reminderAt) {
+    const due = new Date(input.reminderAt);
+    if (!Number.isNaN(due.getTime())) {
+      await prisma.task.create({
+        data: {
+          organizationId: ctx.organizationId,
+          title: input.reminderTitle?.trim() || `Follow up: ${lead.name}`,
+          type: "REMINDER",
+          priority: "MEDIUM",
+          status: "PENDING",
+          dueDate: due,
+          assignedUserId: ctx.userId,
+          createdById: ctx.userId,
+          leadId,
+        },
+      });
+      reminderCreated = true;
+    }
+  }
+  return { ok: true, reminderCreated };
+}
+
 export async function addNote(ctx: TenantContext, leadId: number, body: string) {
   const lead = await prisma.lead.findFirst({
     where: { id: leadId, organizationId: ctx.organizationId },

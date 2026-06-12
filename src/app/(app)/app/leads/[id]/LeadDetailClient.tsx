@@ -30,6 +30,7 @@ export default function LeadDetailClient({ id, initial, members, emails }: { id:
   const router = useRouter();
   const [note, setNote] = useState("");
   const [showEmail, setShowEmail] = useState(false);
+  const [showCall, setShowCall] = useState(false);
 
   const { data } = useQuery({
     queryKey: ["lead", id],
@@ -122,6 +123,9 @@ export default function LeadDetailClient({ id, initial, members, emails }: { id:
               <option key={m.id} value={m.id}>{m.name}</option>
             ))}
           </select>
+          <Button variant="outline" onClick={() => setShowCall(true)} title="Log a call">
+            <Phone className="h-4 w-4" /> Log call
+          </Button>
           <Button
             variant="gradient"
             onClick={() => (lead.email ? setShowEmail(true) : toast.error("Add an email to this lead first."))}
@@ -278,6 +282,103 @@ export default function LeadDetailClient({ id, initial, members, emails }: { id:
           onSent={() => { setShowEmail(false); router.refresh(); qc.invalidateQueries({ queryKey: ["lead", id] }); }}
         />
       )}
+
+      {showCall && (
+        <LogCallDialog
+          leadId={id}
+          leadName={lead.name}
+          onClose={() => setShowCall(false)}
+          onDone={() => { setShowCall(false); router.refresh(); qc.invalidateQueries({ queryKey: ["lead", id] }); }}
+        />
+      )}
+    </div>
+  );
+}
+
+const CALL_OUTCOMES = ["Connected", "Left voicemail", "No answer", "Interested", "Not interested", "Call back later"];
+
+function LogCallDialog({ leadId, leadName, onClose, onDone }: { leadId: number; leadName: string; onClose: () => void; onDone: () => void }) {
+  const [summary, setSummary] = useState("");
+  const [outcome, setOutcome] = useState("Connected");
+  const [withReminder, setWithReminder] = useState(false);
+  const [reminderAt, setReminderAt] = useState("");
+  const [reminderTitle, setReminderTitle] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    if (!summary.trim()) return;
+    if (withReminder && !reminderAt) { toast.error("Pick a reminder date & time."); return; }
+    setSaving(true);
+    const res = await fetch(`/api/app/leads/${leadId}/call`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        summary,
+        outcome,
+        reminderAt: withReminder ? new Date(reminderAt).toISOString() : null,
+        reminderTitle: withReminder ? reminderTitle : undefined,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setSaving(false);
+    if (!res.ok) { toast.error(data.error || "Couldn’t log the call."); return; }
+    toast.success(data.reminderCreated ? "Call logged · reminder set." : "Call logged.");
+    onDone();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <Card className="flex max-h-[85vh] w-full max-w-lg flex-col p-6" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-lg font-bold"><Phone className="h-5 w-5" /> Log call — {leadName}</h2>
+          <button onClick={onClose} className="rounded-md p-1 text-muted-foreground hover:bg-secondary"><X className="h-5 w-5" /></button>
+        </div>
+
+        <div className="mt-4 space-y-3 overflow-y-auto">
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-muted-foreground">What did you discuss? *</span>
+            <textarea value={summary} onChange={(e) => setSummary(e.target.value)} rows={4} autoFocus
+              placeholder="e.g. Owner wants to meet this evening to discuss a new website."
+              className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-muted-foreground">Outcome</span>
+            <select value={outcome} onChange={(e) => setOutcome(e.target.value)}
+              className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              {CALL_OUTCOMES.map((o) => <option key={o} value={o}>{o}</option>)}
+            </select>
+          </label>
+
+          <div className="rounded-xl border border-border bg-secondary/30 p-3">
+            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
+              <input type="checkbox" checked={withReminder} onChange={(e) => setWithReminder(e.target.checked)} className="h-4 w-4 rounded border-input" />
+              <Clock className="h-4 w-4 text-muted-foreground" /> Set a follow-up reminder
+            </label>
+            {withReminder && (
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-1 block text-xs font-medium text-muted-foreground">Date &amp; time *</span>
+                  <input type="datetime-local" value={reminderAt} onChange={(e) => setReminderAt(e.target.value)}
+                    className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-xs font-medium text-muted-foreground">Reminder note</span>
+                  <input value={reminderTitle} onChange={(e) => setReminderTitle(e.target.value)} placeholder={`Follow up: ${leadName}`}
+                    className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+                </label>
+                <p className="col-span-full text-xs text-muted-foreground">We’ll email you at that time and add it to your tasks.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-center justify-end gap-2 border-t border-border pt-4">
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button variant="gradient" onClick={save} disabled={saving || !summary.trim()}>
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Phone className="h-4 w-4" />} Log call
+          </Button>
+        </div>
+      </Card>
     </div>
   );
 }

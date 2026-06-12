@@ -282,6 +282,7 @@ model Task {
   priority       String    @default("MEDIUM") // LOW | MEDIUM | HIGH | URGENT
   dueDate        DateTime?
   completedAt    DateTime?
+  remindedAt     DateTime? // set once the due-reminder email has been sent
   assignedUserId String?
   createdById    String?
   leadId         Int?

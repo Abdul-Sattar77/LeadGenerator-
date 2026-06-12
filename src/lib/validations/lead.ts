@@ -34,3 +34,12 @@ export type UpdateLeadInput = z.infer<typeof updateLeadSchema>;
 export const addNoteSchema = z.object({
   body: z.string().trim().min(1, "Note cannot be empty."),
 });
+
+export const logCallSchema = z.object({
+  summary: z.string().trim().min(1, "Add a quick note about the call."),
+  outcome: z.string().trim().optional(),
+  reminderAt: z.string().nullable().optional(), // ISO datetime for the follow-up
+  reminderTitle: z.string().trim().optional(),
+});
+
+export type LogCallInput = z.infer<typeof logCallSchema>;
