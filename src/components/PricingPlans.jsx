@@ -15,10 +15,10 @@ const plans = [
     yearly: 0,
     desc: "For trying things out and small one-off searches.",
     features: [
-      "20 leads per search",
+      "100 leads free in your CRM",
       "Phone, rating & website data",
       "CSV export",
-      "Save up to 50 leads",
+      "Pipeline & tasks",
     ],
     cta: "Get started",
     href: "/register",

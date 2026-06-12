@@ -12,9 +12,9 @@ export interface PlanDef {
 
 export const PLANS: Record<PlanTier, PlanDef> = {
   FREE: {
-    tier: "FREE", name: "Free", price: 0, leadLimit: 50, seats: 1,
+    tier: "FREE", name: "Free", price: 0, leadLimit: 100, seats: 1,
     blurb: "For trying things out and small one-off searches.",
-    features: ["50 leads in your CRM", "1 seat", "Pipeline & tasks", "CSV export"],
+    features: ["100 leads free in your CRM", "1 seat", "Pipeline & tasks", "CSV export"],
   },
   PRO: {
     tier: "PRO", name: "Pro", price: 29, leadLimit: null, seats: 3,
