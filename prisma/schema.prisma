@@ -47,7 +47,26 @@ model User {
   assignedLeads Lead[]       @relation("LeadAssignee")
   tasks         Task[]       @relation("TaskAssignee")
   createdTasks  Task[]       @relation("TaskCreator")
+  notifications Notification[]
 
+  @@index([organizationId])
+}
+
+// In-app notifications (lead assigned, deal won, task assigned, …).
+model Notification {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String // recipient
+  type           String // LEAD_ASSIGNED | DEAL_WON | TASK_ASSIGNED | FOLLOW_UP
+  title          String
+  body           String   @default("")
+  link           String?
+  read           Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
   @@index([organizationId])
 }
 

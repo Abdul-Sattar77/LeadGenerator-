@@ -4,6 +4,7 @@ import { prisma } from "@/server/db";
 import Sidebar from "./_components/Sidebar";
 import UserMenu from "./_components/UserMenu";
 import MobileMenuButton from "./_components/MobileMenuButton";
+import NotificationBell from "./_components/NotificationBell";
 import { Logo } from "@/components/Logo";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -26,7 +27,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <MobileMenuButton />
             <Link href="/app"><Logo size={26} /></Link>
           </div>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-1.5">
+            <NotificationBell />
             <UserMenu name={ctx.name} role={ctx.role} />
           </div>
         </header>

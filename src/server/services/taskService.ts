@@ -1,5 +1,6 @@
 import { prisma } from "@/server/db";
 import type { TenantContext } from "@/server/tenant";
+import { notify } from "@/server/services/notificationService";
 import type { CreateTaskInput, UpdateTaskInput } from "@/lib/validations/task";
 
 type TaskRow = Awaited<ReturnType<typeof prisma.task.findFirst>>;
@@ -80,6 +81,14 @@ export async function createTask(ctx: TenantContext, input: CreateTaskInput): Pr
   if (task.leadId) {
     await prisma.activity.create({
       data: { organizationId: ctx.organizationId, userId: ctx.userId, leadId: task.leadId, type: "TASK_CREATED" },
+    });
+  }
+  // Notify the assignee if the task was assigned to someone else.
+  if (task.assignedUserId && task.assignedUserId !== ctx.userId) {
+    await notify(ctx.organizationId, task.assignedUserId, {
+      type: "TASK_ASSIGNED",
+      title: `New task: ${task.title}`,
+      link: "/app/tasks",
     });
   }
   return serializeTask(task);

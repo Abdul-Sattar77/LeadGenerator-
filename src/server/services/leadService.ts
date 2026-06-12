@@ -2,6 +2,7 @@ import { prisma } from "@/server/db";
 import type { TenantContext } from "@/server/tenant";
 import { scoreLead } from "@/lib/scoring";
 import { getLeadLimit } from "@/server/services/billingService";
+import { notify } from "@/server/services/notificationService";
 import { PlanLimitError } from "@/lib/plans";
 import type { CreateLeadInput, UpdateLeadInput } from "@/lib/validations/lead";
 
@@ -227,17 +228,33 @@ export async function updateLead(
     include: { assignedUser: { select: { id: true, name: true } } },
   });
 
-  // Activity logging for meaningful changes.
+  // Activity logging + notifications for meaningful changes.
   if (input.status !== undefined && input.status !== current.status) {
     await logActivity(ctx.organizationId, ctx.userId, id, "STATUS_CHANGED", {
       from: current.status,
       to: input.status,
     });
+    if (input.status === "WON" && lead.assignedUserId) {
+      await notify(ctx.organizationId, lead.assignedUserId, {
+        type: "DEAL_WON",
+        title: `🎉 ${lead.name} marked Won`,
+        body: lead.dealValue != null ? `Deal value $${Number(lead.dealValue)}` : "",
+        link: `/app/leads/${id}`,
+      });
+    }
   }
   if (input.assignedUserId !== undefined && input.assignedUserId !== current.assignedUserId) {
     await logActivity(ctx.organizationId, ctx.userId, id, "LEAD_ASSIGNED", {
       assignedUserId: input.assignedUserId,
     });
+    // Notify the new assignee (unless they assigned it to themselves).
+    if (input.assignedUserId && input.assignedUserId !== ctx.userId) {
+      await notify(ctx.organizationId, input.assignedUserId, {
+        type: "LEAD_ASSIGNED",
+        title: `You were assigned ${lead.name}`,
+        link: `/app/leads/${id}`,
+      });
+    }
   }
 
   return serializeLead(lead);
