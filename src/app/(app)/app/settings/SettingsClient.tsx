@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { Check, Loader2, Building2, Gauge, CreditCard, Users, Sparkles, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PLANS } from "@/lib/plans";
@@ -28,6 +29,7 @@ export default function SettingsClient({ billing, upgraded, gmail, googleConfigu
   gmailStatus: string | null;
 }) {
   const router = useRouter();
+  const qc = useQueryClient();
   const [name, setName] = useState(billing.orgName);
   const [savingName, setSavingName] = useState(false);
   const [nameSaved, setNameSaved] = useState(false);
@@ -65,7 +67,10 @@ export default function SettingsClient({ billing, upgraded, gmail, googleConfigu
       return;
     }
     setSwitching(null);
-    if (res.ok) router.refresh(); // instant switch (Free, or Stripe-not-configured)
+    if (res.ok) {
+      qc.invalidateQueries({ queryKey: ["plan"] }); // refresh the upgrade banner
+      router.refresh(); // instant switch (Free, or Stripe-not-configured)
+    }
   }
 
   const limit = billing.leadLimit;
