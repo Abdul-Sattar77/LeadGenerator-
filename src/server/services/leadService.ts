@@ -268,6 +268,62 @@ export async function deleteLead(ctx: TenantContext, id: number): Promise<boolea
   return res.count > 0;
 }
 
+export type BulkAction =
+  | { type: "status"; value: string }
+  | { type: "assign"; value: string | null }
+  | { type: "campaign"; value: string | null }
+  | { type: "delete" };
+
+/** Apply an action to many leads at once (all org-scoped). Returns affected count. */
+export async function bulkLeads(ctx: TenantContext, ids: number[], action: BulkAction): Promise<{ count: number } | { error: string }> {
+  const where = { id: { in: ids }, organizationId: ctx.organizationId };
+
+  if (action.type === "delete") {
+    const r = await prisma.lead.deleteMany({ where });
+    return { count: r.count };
+  }
+  if (action.type === "status") {
+    const r = await prisma.lead.updateMany({ where, data: { status: action.value } });
+    return { count: r.count };
+  }
+  if (action.type === "assign") {
+    if (action.value) {
+      const ok = await prisma.user.findFirst({ where: { id: action.value, organizationId: ctx.organizationId }, select: { id: true } });
+      if (!ok) return { error: "Invalid assignee." };
+    }
+    const r = await prisma.lead.updateMany({ where, data: { assignedUserId: action.value } });
+    return { count: r.count };
+  }
+  // campaign
+  if (action.value) {
+    const ok = await prisma.campaign.findFirst({ where: { id: action.value, organizationId: ctx.organizationId }, select: { id: true } });
+    if (!ok) return { error: "Invalid campaign." };
+  }
+  const r = await prisma.lead.updateMany({ where, data: { campaignId: action.value } });
+  return { count: r.count };
+}
+
+/** Create leads from imported rows. Respects the plan lead cap. */
+export async function importLeads(
+  ctx: TenantContext,
+  rows: CreateLeadInput[]
+): Promise<{ created: number; skipped: number; limitReached: boolean }> {
+  let created = 0;
+  let skipped = 0;
+  let limitReached = false;
+  for (const row of rows) {
+    if (!row.name?.trim()) { skipped++; continue; }
+    try {
+      await createLead(ctx, { ...row, source: row.source || "IMPORT" });
+      created++;
+    } catch (e) {
+      if (e instanceof PlanLimitError) { limitReached = true; break; }
+      skipped++;
+    }
+  }
+  return { created, skipped, limitReached };
+}
+
 /** Records a phone call (note + CALL_LOGGED activity) and an optional follow-up reminder task. */
 export async function logCall(
   ctx: TenantContext,
