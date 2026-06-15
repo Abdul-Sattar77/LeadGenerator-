@@ -27,7 +27,7 @@ export async function runDueReminders(): Promise<{ processed: number; emailed: n
     if (t.assignedUser?.email) {
       const res = await sendEmail({
         to: t.assignedUser.email,
-        subject: `⏰ Reminder: ${t.title}`,
+        subject: `Reminder: ${t.title}`,
         html:
           `<p>Hi ${t.assignedUser.name || "there"},</p>` +
           `<p>This is your follow-up reminder${leadPart}:</p>` +

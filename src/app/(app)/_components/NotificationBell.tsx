@@ -85,7 +85,10 @@ export default function NotificationBell() {
             </div>
             <div className="max-h-96 overflow-y-auto">
               {items.length === 0 ? (
-                <div className="px-4 py-10 text-center text-sm text-muted-foreground">You’re all caught up 🎉</div>
+                <div className="flex flex-col items-center gap-2 px-4 py-10 text-center text-sm text-muted-foreground">
+                  <CheckCheck className="h-6 w-6 text-emerald-500" />
+                  You’re all caught up
+                </div>
               ) : (
                 items.map((n) => {
                   const Icon = ICON[n.type] ?? Bell;

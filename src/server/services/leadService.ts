@@ -238,7 +238,7 @@ export async function updateLead(
     if (input.status === "WON" && lead.assignedUserId) {
       await notify(ctx.organizationId, lead.assignedUserId, {
         type: "DEAL_WON",
-        title: `🎉 ${lead.name} marked Won`,
+        title: `${lead.name} marked Won`,
         body: lead.dealValue != null ? `Deal value $${Number(lead.dealValue)}` : "",
         link: `/app/leads/${id}`,
       });
@@ -341,7 +341,7 @@ export async function logCall(
       organizationId: ctx.organizationId,
       userId: ctx.userId,
       leadId,
-      body: `📞 Call${input.outcome ? ` (${input.outcome})` : ""}: ${input.summary}`,
+      body: `Call${input.outcome ? ` (${input.outcome})` : ""}: ${input.summary}`,
     },
   });
   await prisma.activity.create({

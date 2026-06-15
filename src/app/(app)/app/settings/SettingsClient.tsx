@@ -125,7 +125,7 @@ export default function SettingsClient({ billing, upgraded, gmail, googleConfigu
         </div>
         <p className="text-sm text-muted-foreground">Connect your Gmail so outreach emails are sent from your own address.</p>
 
-        {gmailStatus === "connected" && <p className="mt-3 text-sm font-medium text-emerald-600">✓ Gmail connected.</p>}
+        {gmailStatus === "connected" && <p className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-emerald-600"><Check className="h-4 w-4" /> Gmail connected.</p>}
         {gmailStatus === "denied" && <p className="mt-3 text-sm font-medium text-amber-600">You declined the Google permission.</p>}
         {gmailStatus === "error" && <p className="mt-3 text-sm font-medium text-destructive">Something went wrong connecting Gmail. Try again.</p>}
         {gmailStatus === "unconfigured" && <p className="mt-3 text-sm font-medium text-amber-600">Gmail connect isn’t set up by the admin yet.</p>}

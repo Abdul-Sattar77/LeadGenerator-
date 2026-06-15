@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft, Users, Trophy, DollarSign, TrendingUp, Plus, X, Loader2, Trash2, Megaphone, Mail, Eye, MousePointerClick,
+  ArrowLeft, Users, Trophy, DollarSign, TrendingUp, Plus, X, Loader2, Trash2, Megaphone, Mail, Eye, MousePointerClick, Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CAMPAIGN_STATUSES } from "@/lib/enums";
@@ -298,7 +298,7 @@ function AddLeadsDialog({ id, addable, onClose, onDone }: { id: string; addable:
             <button key={l.id} onClick={() => toggle(l.id)}
               className={cn("flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-accent/30", selected.has(l.id) && "bg-accent/40")}>
               <span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-md border", selected.has(l.id) ? "border-primary bg-primary text-white" : "border-border")}>
-                {selected.has(l.id) && <span className="text-[10px] font-bold">✓</span>}
+                {selected.has(l.id) && <Check className="h-3 w-3" strokeWidth={3} />}
               </span>
               <Avatar name={l.name} size="sm" />
               <span className="min-w-0 flex-1">
