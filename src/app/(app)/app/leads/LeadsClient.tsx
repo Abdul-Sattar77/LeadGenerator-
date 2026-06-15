@@ -80,6 +80,30 @@ export default function LeadsClient({ members }: { members: Member[] }) {
     },
   });
 
+  // Saved views (smart lists)
+  const { data: views = [] } = useQuery({
+    queryKey: ["views"],
+    queryFn: async () => (await (await fetch("/api/app/views")).json()).views as { id: string; name: string; filters: { status?: string; q?: string } }[],
+  });
+  function applyView(f: { status?: string; q?: string }) {
+    setStatusRaw(f.status ?? ""); setQRaw(f.q ?? ""); setPage(1); clearSel();
+  }
+  async function saveView() {
+    const name = prompt("Name this view (e.g. \"Hot leads\")");
+    if (!name?.trim()) return;
+    const res = await fetch("/api/app/views", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: name.trim(), filters: { status: status || undefined, q: q || undefined } }),
+    });
+    if (!res.ok) { toast.error("Couldn’t save the view."); return; }
+    qc.invalidateQueries({ queryKey: ["views"] });
+    toast.success("View saved.");
+  }
+  async function removeView(id: string) {
+    await fetch(`/api/app/views/${id}`, { method: "DELETE" });
+    qc.invalidateQueries({ queryKey: ["views"] });
+  }
+
   const toggle = (id: number) => setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const allOnPage = leads.length > 0 && leads.every((l) => selected.has(l.id));
   const toggleAll = () => setSelected((s) => {
@@ -200,6 +224,20 @@ export default function LeadsClient({ members }: { members: Member[] }) {
             </FilterChip>
           ))}
         </div>
+      </div>
+
+      {/* Saved views (smart lists) */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium text-muted-foreground">Saved views:</span>
+        {views.map((v) => (
+          <span key={v.id} className="inline-flex items-center gap-1 rounded-full border border-border bg-card py-1 pl-3 pr-1.5 text-xs font-medium">
+            <button onClick={() => applyView(v.filters)} className="hover:text-primary">{v.name}</button>
+            <button onClick={() => removeView(v.id)} className="rounded-full p-0.5 text-muted-foreground hover:bg-secondary hover:text-rose-600" title="Delete view"><X className="h-3 w-3" /></button>
+          </span>
+        ))}
+        <button onClick={saveView} className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-3 py-1 text-xs font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground">
+          <Plus className="h-3 w-3" /> Save current
+        </button>
       </div>
 
       {/* Table */}

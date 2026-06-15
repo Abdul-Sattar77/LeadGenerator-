@@ -19,10 +19,11 @@ datasource db {
 
 model Organization {
   id        String   @id @default(cuid())
-  name        String
-  slug        String   @unique
-  monthlyGoal Int? // monthly revenue target (USD) for the dashboard goal tracker
-  createdAt   DateTime @default(now())
+  name            String
+  slug            String   @unique
+  monthlyGoal     Int? // monthly revenue target (USD) for the dashboard goal tracker
+  customFieldDefs String? // JSON array of {key,label} custom lead fields
+  createdAt       DateTime @default(now())
 
   users          User[]
   pipelines      Pipeline[]
@@ -117,8 +118,23 @@ model User {
   createdTasks  Task[]       @relation("TaskCreator")
   notifications Notification[]
   sentEmails    EmailMessage[]
+  savedViews    SavedView[]
 
   @@index([organizationId])
+}
+
+// Per-user saved filter on the leads list ("smart list").
+model SavedView {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  name           String
+  filters        String // JSON: { status?, q? }
+  createdAt      DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 // In-app notifications (lead assigned, deal won, task assigned, …).
@@ -240,6 +256,7 @@ model Lead {
   dealValue      Decimal? // potential/closed deal value (the lead = the opportunity)
   expectedCloseDate DateTime?
   wonAt          DateTime? // set when status becomes WON (for revenue-by-month)
+  customData     String? // JSON map of custom field values
   campaignId     String?
 
   organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
