@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Phone, Globe, MapPin, Star, Mail, Building2,
-  Loader2, Send, Clock, StickyNote, X, MailCheck, MousePointerClick, Eye, Sparkles,
+  Loader2, Send, Clock, StickyNote, X, MailCheck, MousePointerClick, Eye, Sparkles, MessageCircle,
 } from "lucide-react";
 import { LEAD_STATUSES } from "@/lib/enums";
 import { LEAD_STATUS_META, ACTIVITY_LABEL, statusLabel } from "@/lib/leadStatus";
@@ -143,6 +143,16 @@ export default function LeadDetailClient({ id, initial, members, emails }: { id:
               <option key={m.id} value={m.id}>{m.name}</option>
             ))}
           </select>
+          {lead.phone && (
+            <>
+              <a href={`tel:${lead.phone}`} title="Call" className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card text-foreground transition hover:bg-secondary">
+                <Phone className="h-4 w-4" />
+              </a>
+              <a href={`https://wa.me/${lead.phone.replace(/\D/g, "")}`} target="_blank" rel="noreferrer" title="WhatsApp" className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-600 transition hover:bg-emerald-100">
+                <MessageCircle className="h-4 w-4" />
+              </a>
+            </>
+          )}
           <Button variant="outline" onClick={() => setShowCall(true)} title="Log a call">
             <Phone className="h-4 w-4" /> Log call
           </Button>

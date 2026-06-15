@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, Plus, Star, Loader2, Users, X, Upload, Trash2, Check } from "lucide-react";
+import { Search, Plus, Star, Loader2, Users, X, Upload, Trash2, Check, Copy, GitMerge } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LEAD_STATUSES } from "@/lib/enums";
 import { LEAD_STATUS_META } from "@/lib/leadStatus";
@@ -55,6 +55,7 @@ export default function LeadsClient({ members }: { members: Member[] }) {
   // Changing a filter resets to page 1.
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [showImport, setShowImport] = useState(false);
+  const [showDupes, setShowDupes] = useState(false);
   const clearSel = () => setSelected(new Set());
 
   const setStatus = (v: string) => { setStatusRaw(v); setPage(1); clearSel(); };
@@ -125,6 +126,9 @@ export default function LeadsClient({ members }: { members: Member[] }) {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowDupes(true)} title="Find &amp; merge duplicate leads">
+            <Copy className="h-4 w-4" /> Duplicates
+          </Button>
           <Button variant="outline" onClick={() => setShowImport(true)}>
             <Upload className="h-4 w-4" /> Import CSV
           </Button>
@@ -310,6 +314,82 @@ export default function LeadsClient({ members }: { members: Member[] }) {
 
       {showNew && <NewLeadDialog onClose={() => setShowNew(false)} />}
       {showImport && <ImportDialog onClose={() => setShowImport(false)} onDone={() => { setShowImport(false); qc.invalidateQueries({ queryKey: ["leads"] }); }} />}
+      {showDupes && <DuplicatesDialog onClose={() => setShowDupes(false)} onMerged={() => qc.invalidateQueries({ queryKey: ["leads"] })} />}
+    </div>
+  );
+}
+
+type DupLead = { id: number; name: string; phone: string; address: string; status: string; leadScore: number; savedAt: string };
+
+function DuplicatesDialog({ onClose, onMerged }: { onClose: () => void; onMerged: () => void }) {
+  const qc = useQueryClient();
+  const [keepers, setKeepers] = useState<Record<number, number>>({}); // groupIndex -> chosen keep id
+
+  const { data: groups = [], isLoading, refetch } = useQuery({
+    queryKey: ["duplicates"],
+    queryFn: async () => {
+      const res = await fetch("/api/app/leads/duplicates");
+      if (!res.ok) throw new Error();
+      return (await res.json()).groups as DupLead[][];
+    },
+  });
+
+  const merge = useMutation({
+    mutationFn: async ({ keepId, mergeIds }: { keepId: number; mergeIds: number[] }) => {
+      const res = await fetch("/api/app/leads/merge", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ keepId, mergeIds }),
+      });
+      if (!res.ok) throw new Error("Merge failed");
+      return (await res.json()).merged as number;
+    },
+    onSuccess: (n) => { toast.success(`Merged ${n} duplicate${n === 1 ? "" : "s"}.`); qc.invalidateQueries({ queryKey: ["duplicates"] }); refetch(); onMerged(); },
+    onError: () => toast.error("Couldn’t merge those leads."),
+  });
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <Card className="flex max-h-[85vh] w-full max-w-lg flex-col p-6" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-lg font-bold"><Copy className="h-5 w-5" /> Duplicate leads</h2>
+          <button onClick={onClose} className="rounded-md p-1 text-muted-foreground hover:bg-secondary"><X className="h-5 w-5" /></button>
+        </div>
+        <p className="mt-1 text-sm text-muted-foreground">Same name + phone (or address). Pick which to keep; the rest merge into it (notes, tasks, emails move over).</p>
+
+        <div className="mt-4 flex-1 space-y-4 overflow-y-auto">
+          {isLoading ? (
+            <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Scanning…</div>
+          ) : groups.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 py-10 text-center text-sm text-muted-foreground"><Check className="h-6 w-6 text-emerald-500" /> No duplicates found.</div>
+          ) : (
+            groups.map((g, gi) => {
+              const keepId = keepers[gi] ?? g[0].id;
+              return (
+                <div key={gi} className="rounded-xl border border-border p-3">
+                  <div className="mb-2 text-xs font-semibold text-muted-foreground">{g[0].name} · {g.length} copies</div>
+                  <div className="space-y-1.5">
+                    {g.map((l) => (
+                      <label key={l.id} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-secondary/50">
+                        <input type="radio" name={`grp-${gi}`} checked={keepId === l.id} onChange={() => setKeepers((k) => ({ ...k, [gi]: l.id }))} />
+                        <span className="flex-1">
+                          <span className="font-medium">{l.name}</span>
+                          <span className="text-xs text-muted-foreground"> · {l.phone || l.address || "—"} · score {l.leadScore}</span>
+                        </span>
+                        {keepId === l.id && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">KEEP</span>}
+                      </label>
+                    ))}
+                  </div>
+                  <div className="mt-2 flex justify-end">
+                    <Button size="sm" variant="gradient" disabled={merge.isPending}
+                      onClick={() => merge.mutate({ keepId, mergeIds: g.filter((l) => l.id !== keepId).map((l) => l.id) })}>
+                      {merge.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <GitMerge className="h-4 w-4" />} Merge {g.length - 1} into this
+                    </Button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </Card>
     </div>
   );
 }

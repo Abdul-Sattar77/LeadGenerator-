@@ -308,6 +308,49 @@ export async function bulkLeads(ctx: TenantContext, ids: number[], action: BulkA
   return { count: r.count };
 }
 
+export type DuplicateLead = { id: number; name: string; phone: string; address: string; status: string; leadScore: number; savedAt: string };
+
+/** Groups of likely-duplicate leads (same name + same phone or address). */
+export async function findDuplicateGroups(ctx: TenantContext): Promise<DuplicateLead[][]> {
+  const leads = await prisma.lead.findMany({
+    where: { organizationId: ctx.organizationId },
+    select: { id: true, name: true, phone: true, address: true, status: true, leadScore: true, savedAt: true },
+    orderBy: { savedAt: "asc" },
+  });
+  const groups = new Map<string, DuplicateLead[]>();
+  for (const l of leads) {
+    const base = (l.name || "").trim().toLowerCase();
+    if (!base) continue;
+    const phone = (l.phone || "").replace(/\D/g, "");
+    const key = `${base}|${phone || (l.address || "").trim().toLowerCase()}`;
+    const row: DuplicateLead = { id: l.id, name: l.name, phone: l.phone, address: l.address, status: l.status, leadScore: l.leadScore, savedAt: l.savedAt.toISOString() };
+    (groups.get(key) ?? groups.set(key, []).get(key)!).push(row);
+  }
+  return [...groups.values()].filter((g) => g.length > 1);
+}
+
+/** Merge duplicates into a primary lead: move all related records, delete the rest. */
+export async function mergeLeads(ctx: TenantContext, keepId: number, mergeIds: number[]): Promise<{ merged: number } | { error: string }> {
+  const ids = [...new Set(mergeIds)].filter((id) => id !== keepId);
+  if (!ids.length) return { merged: 0 };
+
+  const keep = await prisma.lead.findFirst({ where: { id: keepId, organizationId: ctx.organizationId }, select: { id: true } });
+  if (!keep) return { error: "Primary lead not found." };
+
+  const inOrg = await prisma.lead.findMany({ where: { id: { in: ids }, organizationId: ctx.organizationId }, select: { id: true } });
+  const valid = inOrg.map((l) => l.id);
+  if (!valid.length) return { merged: 0 };
+
+  await prisma.$transaction([
+    prisma.note.updateMany({ where: { leadId: { in: valid } }, data: { leadId: keepId } }),
+    prisma.activity.updateMany({ where: { leadId: { in: valid } }, data: { leadId: keepId } }),
+    prisma.task.updateMany({ where: { leadId: { in: valid } }, data: { leadId: keepId } }),
+    prisma.emailMessage.updateMany({ where: { leadId: { in: valid } }, data: { leadId: keepId } }),
+    prisma.lead.deleteMany({ where: { id: { in: valid }, organizationId: ctx.organizationId } }),
+  ]);
+  return { merged: valid.length };
+}
+
 /** Create leads from imported rows. Respects the plan lead cap. */
 export async function importLeads(
   ctx: TenantContext,
