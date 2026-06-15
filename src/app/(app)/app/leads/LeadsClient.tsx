@@ -549,11 +549,32 @@ function FilterChip({ active, onClick, children }: { active: boolean; onClick: (
   );
 }
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_RE = /^[0-9+()\-\s]{6,}$/;
+
 function NewLeadDialog({ onClose }: { onClose: () => void }) {
   const qc = useQueryClient();
-  const [form, setForm] = useState({ name: "", phone: "", website: "", category: "", industry: "", address: "", rating: "", reviews: "" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", website: "", category: "", industry: "", address: "", rating: "", reviews: "" });
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
-  const set = (k: string) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const set = (k: string) => (v: string) => { setForm((f) => ({ ...f, [k]: v })); setErrors((e) => ({ ...e, [k]: "" })); };
+  // Phone keeps only digits and + ( ) - and spaces as you type.
+  const setPhone = (v: string) => set("phone")(v.replace(/[^0-9+()\-\s]/g, ""));
+
+  function validate(): boolean {
+    const e: Record<string, string> = {};
+    if (!form.name.trim()) e.name = "Business name is required.";
+    if (form.email && !EMAIL_RE.test(form.email.trim())) e.email = "Enter a valid email (name@example.com).";
+    if (form.phone && !PHONE_RE.test(form.phone.trim())) e.phone = "Digits and + ( ) - only.";
+    if (form.website && !/\./.test(form.website.trim())) e.website = "Enter a valid website.";
+    if (form.rating) {
+      const r = Number(form.rating);
+      if (Number.isNaN(r) || r < 0 || r > 5) e.rating = "Rating must be between 0 and 5.";
+    }
+    if (form.reviews && !/^\d+$/.test(form.reviews.trim())) e.reviews = "Whole number only.";
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  }
 
   const create = useMutation({
     mutationFn: async () => {
@@ -571,6 +592,7 @@ function NewLeadDialog({ onClose }: { onClose: () => void }) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["leads"] });
+      toast.success("Lead created.");
       onClose();
     },
     onError: (e: Error) => setError(e.message),
@@ -586,17 +608,19 @@ function NewLeadDialog({ onClose }: { onClose: () => void }) {
           </button>
         </div>
         <form
-          onSubmit={(e) => { e.preventDefault(); setError(""); create.mutate(); }}
+          onSubmit={(e) => { e.preventDefault(); setError(""); if (validate()) create.mutate(); }}
+          noValidate
           className="mt-4 grid grid-cols-2 gap-3"
         >
-          <DialogField label="Business name *" value={form.name} onChange={set("name")} className="col-span-2" required />
-          <DialogField label="Phone" value={form.phone} onChange={set("phone")} />
-          <DialogField label="Website" value={form.website} onChange={set("website")} />
+          <DialogField label="Business name *" value={form.name} onChange={set("name")} className="col-span-2" error={errors.name} />
+          <DialogField label="Email" value={form.email} onChange={set("email")} type="email" inputMode="email" placeholder="owner@example.com" error={errors.email} />
+          <DialogField label="Phone" value={form.phone} onChange={setPhone} type="tel" inputMode="tel" placeholder="+92 300 1234567" error={errors.phone} />
+          <DialogField label="Website" value={form.website} onChange={set("website")} placeholder="example.com" error={errors.website} />
           <DialogField label="Category" value={form.category} onChange={set("category")} />
           <DialogField label="Industry" value={form.industry} onChange={set("industry")} />
           <DialogField label="Address" value={form.address} onChange={set("address")} className="col-span-2" />
-          <DialogField label="Rating (0–5)" value={form.rating} onChange={set("rating")} type="number" />
-          <DialogField label="Reviews" value={form.reviews} onChange={set("reviews")} type="number" />
+          <DialogField label="Rating (0–5)" value={form.rating} onChange={set("rating")} type="number" min="0" max="5" step="0.1" error={errors.rating} />
+          <DialogField label="Reviews" value={form.reviews} onChange={set("reviews")} type="number" min="0" step="1" error={errors.reviews} />
 
           {error && <p className="col-span-2 text-sm font-medium text-destructive">{error}</p>}
 
@@ -613,24 +637,37 @@ function NewLeadDialog({ onClose }: { onClose: () => void }) {
   );
 }
 
-function DialogField({ label, value, onChange, type = "text", className, required }: {
+function DialogField({ label, value, onChange, type = "text", className, error, inputMode, placeholder, min, max, step }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   type?: string;
   className?: string;
-  required?: boolean;
+  error?: string;
+  inputMode?: "text" | "email" | "tel" | "numeric" | "decimal";
+  placeholder?: string;
+  min?: string;
+  max?: string;
+  step?: string;
 }) {
   return (
     <label className={cn("block", className)}>
       <span className="mb-1 block text-xs font-medium text-muted-foreground">{label}</span>
       <input
         type={type}
+        inputMode={inputMode}
+        placeholder={placeholder}
+        min={min}
+        max={max}
+        step={step}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        required={required}
-        className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className={cn(
+          "h-10 w-full rounded-lg border bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          error ? "border-destructive focus-visible:ring-destructive/40" : "border-input"
+        )}
       />
+      {error && <span className="mt-1 block text-xs font-medium text-destructive">{error}</span>}
     </label>
   );
 }
