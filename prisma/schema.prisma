@@ -19,9 +19,10 @@ datasource db {
 
 model Organization {
   id        String   @id @default(cuid())
-  name      String
-  slug      String   @unique
-  createdAt DateTime @default(now())
+  name        String
+  slug        String   @unique
+  monthlyGoal Int? // monthly revenue target (USD) for the dashboard goal tracker
+  createdAt   DateTime @default(now())
 
   users          User[]
   pipelines      Pipeline[]
@@ -238,6 +239,7 @@ model Lead {
   scoreBreakdown String? // JSON-encoded {factor: points}
   dealValue      Decimal? // potential/closed deal value (the lead = the opportunity)
   expectedCloseDate DateTime?
+  wonAt          DateTime? // set when status becomes WON (for revenue-by-month)
   campaignId     String?
 
   organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)

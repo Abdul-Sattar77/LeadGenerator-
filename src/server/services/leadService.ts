@@ -217,7 +217,12 @@ export async function updateLead(
   if (input.industry !== undefined) data.industry = input.industry;
   if (input.tags !== undefined) data.tags = JSON.stringify(input.tags);
   if (input.assignedUserId !== undefined) data.assignedUserId = input.assignedUserId;
-  if (input.status !== undefined) data.status = input.status;
+  if (input.status !== undefined) {
+    data.status = input.status;
+    // Stamp/clear the won timestamp so revenue-by-month is accurate.
+    if (input.status === "WON" && current.status !== "WON") data.wonAt = new Date();
+    else if (input.status !== "WON" && current.status === "WON") data.wonAt = null;
+  }
   if (input.dealValue !== undefined) data.dealValue = input.dealValue;
   if (input.expectedCloseDate !== undefined) {
     data.expectedCloseDate = input.expectedCloseDate ? new Date(input.expectedCloseDate) : null;

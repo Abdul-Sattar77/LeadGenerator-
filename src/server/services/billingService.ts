@@ -7,7 +7,7 @@ import type { PlanTier } from "@/lib/enums";
 
 export async function getBilling(ctx: TenantContext) {
   const [org, sub, leadCount, memberCount] = await Promise.all([
-    prisma.organization.findUnique({ where: { id: ctx.organizationId }, select: { name: true } }),
+    prisma.organization.findUnique({ where: { id: ctx.organizationId }, select: { name: true, monthlyGoal: true } }),
     prisma.subscription.findUnique({ where: { organizationId: ctx.organizationId } }),
     prisma.lead.count({ where: { organizationId: ctx.organizationId } }),
     prisma.user.count({ where: { organizationId: ctx.organizationId } }),
@@ -16,6 +16,7 @@ export async function getBilling(ctx: TenantContext) {
   const plan = planOf(sub?.plan ?? "FREE");
   return {
     orgName: org?.name ?? "",
+    monthlyGoal: org?.monthlyGoal ?? null,
     plan: plan.tier,
     status: sub?.status ?? "TRIALING",
     leadCount,
@@ -40,6 +41,13 @@ export async function setPlan(ctx: TenantContext, tier: PlanTier): Promise<boole
 
 export async function updateOrgName(ctx: TenantContext, name: string): Promise<void> {
   await prisma.organization.update({ where: { id: ctx.organizationId }, data: { name } });
+}
+
+export async function updateOrganization(
+  ctx: TenantContext,
+  data: { name?: string; monthlyGoal?: number | null }
+): Promise<void> {
+  await prisma.organization.update({ where: { id: ctx.organizationId }, data });
 }
 
 /** Lead cap for an org's current plan, or null if unlimited. */

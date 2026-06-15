@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 
 type Billing = {
   orgName: string;
+  monthlyGoal: number | null;
   plan: PlanTier;
   status: string;
   leadCount: number;
@@ -31,6 +32,7 @@ export default function SettingsClient({ billing, upgraded, gmail, googleConfigu
   const router = useRouter();
   const qc = useQueryClient();
   const [name, setName] = useState(billing.orgName);
+  const [goal, setGoal] = useState(billing.monthlyGoal ? String(billing.monthlyGoal) : "");
   const [savingName, setSavingName] = useState(false);
   const [nameSaved, setNameSaved] = useState(false);
   const [switching, setSwitching] = useState<PlanTier | null>(null);
@@ -49,7 +51,8 @@ export default function SettingsClient({ billing, upgraded, gmail, googleConfigu
     setSavingName(true);
     setNameSaved(false);
     const res = await fetch("/api/app/org", {
-      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }),
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, monthlyGoal: goal ? Number(goal) : null }),
     });
     setSavingName(false);
     if (res.ok) { setNameSaved(true); router.refresh(); }
@@ -102,11 +105,20 @@ export default function SettingsClient({ billing, upgraded, gmail, googleConfigu
           <h2 className="font-semibold">Workspace</h2>
         </div>
         <form onSubmit={saveName} className="flex flex-wrap items-end gap-3">
-          <label className="flex-1">
+          <label className="min-w-[180px] flex-1">
             <span className="mb-1 block text-xs font-medium text-muted-foreground">Workspace name</span>
             <input
               value={name}
               onChange={(e) => { setName(e.target.value); setNameSaved(false); }}
+              className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          </label>
+          <label className="w-44">
+            <span className="mb-1 block text-xs font-medium text-muted-foreground">Monthly revenue goal ($)</span>
+            <input
+              type="number" min={0} value={goal}
+              onChange={(e) => { setGoal(e.target.value); setNameSaved(false); }}
+              placeholder="e.g. 10000"
               className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </label>

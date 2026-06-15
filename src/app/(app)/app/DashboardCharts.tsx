@@ -69,6 +69,29 @@ export function ConversionFunnel({ funnel }: { funnel: Funnel }) {
   );
 }
 
+export function MiniBars({ data, tone, money = false }: { data: { label: string; value: number }[]; tone: string; money?: boolean }) {
+  const max = Math.max(1, ...data.map((d) => d.value));
+  const fmt = (n: number) => (money ? (n >= 1000 ? `$${(n / 1000).toFixed(n % 1000 ? 1 : 0)}k` : `$${n}`) : String(n));
+  return (
+    <div className="flex h-36 items-end gap-2">
+      {data.map((d, i) => (
+        <div key={d.label + i} className="flex h-full flex-1 flex-col items-center gap-1">
+          <span className="text-[10px] font-semibold text-muted-foreground">{fmt(d.value)}</span>
+          <div className="flex w-full flex-1 items-end">
+            <motion.div
+              className={cn("w-full rounded-t-md", tone)}
+              initial={{ height: 0 }}
+              animate={{ height: `${Math.max((d.value / max) * 100, d.value > 0 ? 4 : 0)}%` }}
+              transition={{ duration: 0.6, delay: i * 0.06, ease: [0.16, 1, 0.3, 1] }}
+            />
+          </div>
+          <span className="text-[10px] text-muted-foreground">{d.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function LeadsByStage({ byStage }: { byStage: ByStage }) {
   const max = Math.max(1, ...byStage.map((s) => s.count));
   return (

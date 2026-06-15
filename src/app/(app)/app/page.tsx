@@ -8,7 +8,7 @@ import { getDashboardData } from "@/server/services/dashboardService";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ACTIVITY_LABEL } from "@/lib/leadStatus";
-import { ConversionFunnel, LeadsByStage, KpiRow } from "./DashboardCharts";
+import { ConversionFunnel, LeadsByStage, KpiRow, MiniBars } from "./DashboardCharts";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +33,7 @@ const TASK_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
 
 export default async function OverviewPage() {
   const ctx = await requireAuth();
-  const { kpis, funnel, byStage, upcomingTasks, activities } = await getDashboardData(ctx);
+  const { kpis, funnel, byStage, timeseries, goal, upcomingTasks, activities } = await getDashboardData(ctx);
   const firstName = ctx.name.split(" ")[0] || "there";
 
   const kpiCards = [
@@ -117,6 +117,51 @@ export default async function OverviewPage() {
             <h2 className="font-semibold">Leads by stage</h2>
           </div>
           <LeadsByStage byStage={byStage} />
+        </Card>
+      </div>
+
+      {/* Goal + trends row */}
+      <div className="grid gap-5 lg:grid-cols-3">
+        <Card className="p-6">
+          <div className="mb-4 flex items-center gap-2">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 text-white">
+              <Trophy className="h-4 w-4" />
+            </span>
+            <h2 className="font-semibold">Monthly goal</h2>
+          </div>
+          {goal.target ? (
+            <div>
+              <div className="flex items-end justify-between">
+                <span className="text-3xl font-extrabold tracking-tight">{fmtMoney(goal.thisMonthRevenue)}</span>
+                <span className="text-sm text-muted-foreground">of {fmtMoney(goal.target)}</span>
+              </div>
+              <div className="mt-3 h-3 overflow-hidden rounded-full bg-secondary/60">
+                <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500" style={{ width: `${goal.pct}%` }} />
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">
+                <span className="font-semibold text-foreground">{goal.pct}%</span> of this month’s target
+                {goal.target > goal.thisMonthRevenue && <> · {fmtMoney(goal.target - goal.thisMonthRevenue)} to go</>}
+              </p>
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground">
+              No goal set yet. <Link href="/app/settings" className="font-semibold text-primary hover:underline">Set a monthly revenue goal</Link> to track progress here.
+            </div>
+          )}
+        </Card>
+
+        <Card className="p-6 lg:col-span-2">
+          <h2 className="mb-4 font-semibold">Last 6 months</h2>
+          <div className="grid gap-6 sm:grid-cols-2">
+            <div>
+              <p className="mb-2 text-xs font-medium text-muted-foreground">New leads</p>
+              <MiniBars data={timeseries.map((m) => ({ label: m.label, value: m.leads }))} tone="bg-gradient-to-t from-indigo-500 to-violet-400" />
+            </div>
+            <div>
+              <p className="mb-2 text-xs font-medium text-muted-foreground">Revenue won</p>
+              <MiniBars data={timeseries.map((m) => ({ label: m.label, value: m.revenue }))} tone="bg-gradient-to-t from-emerald-500 to-teal-400" money />
+            </div>
+          </div>
         </Card>
       </div>
 
