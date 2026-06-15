@@ -36,6 +36,7 @@ export function serializeLead(row: NonNullable<LeadRow> & { assignedUser?: { id:
     status: row.status,
     leadScore: row.leadScore,
     campaignId: row.campaignId,
+    customData: parseJson<Record<string, string>>(row.customData, {}),
     dealValue: row.dealValue != null ? Number(row.dealValue) : null,
     expectedCloseDate: row.expectedCloseDate ? row.expectedCloseDate.toISOString() : null,
     scoreBreakdown: parseJson<Record<string, number>>(row.scoreBreakdown, {}),
@@ -226,6 +227,11 @@ export async function updateLead(
   if (input.dealValue !== undefined) data.dealValue = input.dealValue;
   if (input.expectedCloseDate !== undefined) {
     data.expectedCloseDate = input.expectedCloseDate ? new Date(input.expectedCloseDate) : null;
+  }
+  if (input.customData !== undefined) {
+    // Merge into existing custom values so editing one field doesn't wipe others.
+    const existing = parseJson<Record<string, string>>(current.customData, {});
+    data.customData = JSON.stringify({ ...existing, ...input.customData });
   }
 
   const lead = await prisma.lead.update({

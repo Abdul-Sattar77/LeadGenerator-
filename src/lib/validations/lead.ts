@@ -27,6 +27,7 @@ export const updateLeadSchema = z.object({
   tags: z.array(z.string()).optional(),
   dealValue: z.coerce.number().min(0).nullable().optional(),
   expectedCloseDate: z.string().nullable().optional(),
+  customData: z.record(z.string(), z.string()).optional(),
 });
 
 export type UpdateLeadInput = z.infer<typeof updateLeadSchema>;

@@ -25,7 +25,9 @@ type Detail = {
   notes: { id: string; body: string; createdAt: string }[];
 };
 
-export default function LeadDetailClient({ id, initial, members, emails }: { id: number; initial: Detail; members: Member[]; emails: EmailMsg[] }) {
+type FieldDef = { key: string; label: string };
+
+export default function LeadDetailClient({ id, initial, members, emails, customFields }: { id: number; initial: Detail; members: Member[]; emails: EmailMsg[]; customFields: FieldDef[] }) {
   const qc = useQueryClient();
   const router = useRouter();
   const [note, setNote] = useState("");
@@ -218,6 +220,27 @@ export default function LeadDetailClient({ id, initial, members, emails }: { id:
               </div>
             </div>
           </Card>
+
+          {customFields.length > 0 && (
+            <Card className="p-5">
+              <h2 className="font-semibold">Custom fields</h2>
+              <div className="mt-3 space-y-3">
+                {customFields.map((f) => (
+                  <label key={f.key} className="block">
+                    <span className="mb-1 block text-xs font-medium text-muted-foreground">{f.label}</span>
+                    <input
+                      defaultValue={lead.customData?.[f.key] ?? ""}
+                      onBlur={(e) => {
+                        const v = e.target.value;
+                        if (v !== (lead.customData?.[f.key] ?? "")) patch.mutate({ customData: { [f.key]: v } });
+                      }}
+                      className="h-10 w-full rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    />
+                  </label>
+                ))}
+              </div>
+            </Card>
+          )}
         </div>
 
         {/* Notes + timeline */}

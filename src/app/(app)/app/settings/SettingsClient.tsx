@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, Loader2, Building2, Gauge, CreditCard, Users, Sparkles, Mail } from "lucide-react";
+import { Check, Loader2, Building2, Gauge, CreditCard, Users, Sparkles, Mail, Plus, Trash2, ListChecks } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PLANS } from "@/lib/plans";
 import { PLAN_TIERS, type PlanTier } from "@/lib/enums";
@@ -128,6 +128,9 @@ export default function SettingsClient({ billing, upgraded, gmail, googleConfigu
           </Button>
         </form>
       </Card>
+
+      {/* Custom fields */}
+      <CustomFieldsSection />
 
       {/* Email sending */}
       <Card className="p-6">
@@ -254,5 +257,77 @@ export default function SettingsClient({ billing, upgraded, gmail, googleConfigu
         </p>
       </div>
     </div>
+  );
+}
+
+type FieldDef = { key?: string; label: string };
+
+function CustomFieldsSection() {
+  const [fields, setFields] = useState<FieldDef[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/app/custom-fields")
+      .then((r) => r.json())
+      .then((d) => setFields(d.defs || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  function update(i: number, label: string) { setFields((f) => f.map((x, j) => (j === i ? { ...x, label } : x))); setSaved(false); }
+  function remove(i: number) { setFields((f) => f.filter((_, j) => j !== i)); setSaved(false); }
+  function add() { setFields((f) => [...f, { label: "" }]); setSaved(false); }
+
+  async function save() {
+    setSaving(true);
+    const res = await fetch("/api/app/custom-fields", {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ defs: fields.filter((f) => f.label.trim()) }),
+    });
+    setSaving(false);
+    if (!res.ok) { toast.error("Couldn’t save custom fields."); return; }
+    setSaved(true);
+    toast.success("Custom fields saved.");
+  }
+
+  return (
+    <Card className="p-6">
+      <div className="mb-1 flex items-center gap-2">
+        <ListChecks className="h-4 w-4 text-muted-foreground" />
+        <h2 className="font-semibold">Custom fields</h2>
+      </div>
+      <p className="text-sm text-muted-foreground">Add your own fields to every lead (e.g. “Cuisine”, “Franchise?”). They appear on each lead’s page.</p>
+
+      {loading ? (
+        <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div>
+      ) : (
+        <div className="mt-4 space-y-2">
+          {fields.map((f, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <input
+                value={f.label}
+                onChange={(e) => update(i, e.target.value)}
+                placeholder="Field name"
+                className="h-10 flex-1 rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+              <button onClick={() => remove(i)} className="rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-rose-600" title="Remove">
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+          <div className="flex items-center justify-between pt-1">
+            <button onClick={add} className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline">
+              <Plus className="h-4 w-4" /> Add field
+            </button>
+            <Button variant="gradient" onClick={save} disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : saved ? <Check className="h-4 w-4" /> : null}
+              {saved ? "Saved" : "Save fields"}
+            </Button>
+          </div>
+        </div>
+      )}
+    </Card>
   );
 }
