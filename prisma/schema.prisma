@@ -32,6 +32,10 @@ model Organization {
   campaigns      Campaign[]
   emailTemplates EmailTemplate[]
   emails         EmailMessage[]
+  companies      Company[]
+  contacts       Contact[]
+  deals          Deal[]
+  tags           Tag[]
 }
 
 // Outreach campaigns — group leads for coordinated follow-up.
@@ -119,6 +123,9 @@ model User {
   notifications Notification[]
   sentEmails    EmailMessage[]
   savedViews    SavedView[]
+  ownedCompanies Company[] @relation("CompanyOwner")
+  ownedContacts  Contact[] @relation("ContactOwner")
+  ownedDeals     Deal[]    @relation("DealOwner")
 
   @@index([organizationId])
 }
@@ -189,18 +196,22 @@ model Pipeline {
 
   organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   stages       PipelineStage[]
+  deals        Deal[]
 
   @@index([organizationId])
 }
 
 model PipelineStage {
-  id         String @id @default(cuid())
-  pipelineId String
-  name       String
-  order      Int
-  color      String @default("#6366F1")
+  id          String @id @default(cuid())
+  pipelineId  String
+  name        String
+  order       Int
+  color       String @default("#6366F1")
+  probability Int    @default(0) // win probability % at this stage
+  kind        String @default("OPEN") // OPEN | WON | LOST (terminal stages)
 
   pipeline Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  deals    Deal[]
 
   @@index([pipelineId])
 }
@@ -279,16 +290,25 @@ model Lead {
 model Activity {
   id             String   @id @default(cuid())
   organizationId String
-  type           String // ActivityType (LEAD_CREATED | STATUS_CHANGED | NOTE_ADDED | ...)
+  type           String // ActivityType (CALL | EMAIL | MEETING | NOTE_ADDED | STAGE_CHANGED | ...)
   userId         String?
   leadId         Int?
+  companyId      String?
+  contactId      String?
+  dealId         String?
   metadata       String? // JSON-encoded extra detail, e.g. {"from":"NEW","to":"CONTACTED"}
   createdAt      DateTime @default(now())
 
-  lead Lead? @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  lead    Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contact Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  deal    Deal?    @relation(fields: [dealId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, createdAt])
   @@index([leadId])
+  @@index([contactId])
+  @@index([companyId])
+  @@index([dealId])
 }
 
 // Follow-up tasks: calls, meetings, emails, reminders.
@@ -306,15 +326,23 @@ model Task {
   assignedUserId String?
   createdById    String?
   leadId         Int?
+  companyId      String?
+  contactId      String?
+  dealId         String?
   createdAt      DateTime  @default(now())
 
-  assignedUser User? @relation("TaskAssignee", fields: [assignedUserId], references: [id], onDelete: SetNull)
-  createdBy    User? @relation("TaskCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  lead         Lead? @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  assignedUser User?    @relation("TaskAssignee", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  createdBy    User?    @relation("TaskCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  lead         Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  company      Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contact      Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  deal         Deal?    @relation(fields: [dealId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, status])
   @@index([assignedUserId, dueDate])
   @@index([leadId])
+  @@index([contactId])
+  @@index([dealId])
 }
 
 // Free-text notes attached to a lead (separate from the legacy single `notes` field).
@@ -324,9 +352,161 @@ model Note {
   body           String
   userId         String?
   leadId         Int?
+  companyId      String?
+  contactId      String?
+  dealId         String?
   createdAt      DateTime @default(now())
 
-  lead Lead? @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  lead    Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contact Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  deal    Deal?    @relation(fields: [dealId], references: [id], onDelete: Cascade)
 
   @@index([leadId])
+  @@index([contactId])
+  @@index([dealId])
+}
+
+// ─────────────────────── CRM v2: relational core ───────────────────────
+
+model Company {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  domain         String?
+  website        String?
+  phone          String?
+  industry       String?
+  size           String? // e.g. 1-10, 11-50, 51-200…
+  address        String?
+  city           String?
+  country        String?
+  ownerId        String?
+  source         String   @default("MANUAL")
+  customData     String? // JSON
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  owner        User?        @relation("CompanyOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  contacts     Contact[]
+  deals        Deal[]
+  activities   Activity[]
+  tasks        Task[]
+  notes        Note[]
+  tagLinks     TagLink[]
+
+  @@index([organizationId])
+  @@index([ownerId])
+}
+
+model Contact {
+  id             String   @id @default(cuid())
+  organizationId String
+  companyId      String?
+  firstName      String
+  lastName       String   @default("")
+  email          String?
+  phone          String?
+  title          String? // job title
+  ownerId        String?
+  source         String   @default("MANUAL")
+  lifecycleStage String   @default("LEAD") // LEAD | QUALIFIED | CUSTOMER | EVANGELIST
+  leadScore      Int      @default(0)
+  customData     String? // JSON
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  company         Company?     @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  owner           User?        @relation("ContactOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  dealLinks       DealContact[]
+  primaryForDeals Deal[]       @relation("DealPrimaryContact")
+  activities      Activity[]
+  tasks           Task[]
+  notes           Note[]
+  tagLinks        TagLink[]
+
+  @@index([organizationId])
+  @@index([companyId])
+  @@index([ownerId])
+}
+
+model Deal {
+  id                String    @id @default(cuid())
+  organizationId    String
+  name              String
+  value             Decimal?
+  currency          String    @default("USD")
+  pipelineId        String
+  stageId           String
+  status            String    @default("OPEN") // OPEN | WON | LOST
+  companyId         String?
+  primaryContactId  String?
+  ownerId           String?
+  source            String    @default("MANUAL")
+  expectedCloseDate DateTime?
+  wonAt             DateTime?
+  lostReason        String?
+  customData        String? // JSON
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  pipeline       Pipeline      @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  stage          PipelineStage @relation(fields: [stageId], references: [id])
+  company        Company?      @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  primaryContact Contact?      @relation("DealPrimaryContact", fields: [primaryContactId], references: [id], onDelete: SetNull)
+  owner          User?         @relation("DealOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  contactLinks   DealContact[]
+  activities     Activity[]
+  tasks          Task[]
+  notes          Note[]
+
+  @@index([organizationId, status])
+  @@index([pipelineId])
+  @@index([stageId])
+  @@index([companyId])
+}
+
+// Many-to-many: a deal can involve several contacts.
+model DealContact {
+  dealId    String
+  contactId String
+  role      String? // e.g. Decision maker, Champion
+
+  deal    Deal    @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@id([dealId, contactId])
+  @@index([contactId])
+}
+
+model Tag {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  color          String   @default("#64748b")
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  links        TagLink[]
+
+  @@unique([organizationId, name])
+}
+
+// Polymorphic tag attachment (a tag can apply to a company or a contact).
+model TagLink {
+  id        String  @id @default(cuid())
+  tagId     String
+  companyId String?
+  contactId String?
+
+  tag     Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contact Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([tagId])
+  @@index([companyId])
+  @@index([contactId])
 }
