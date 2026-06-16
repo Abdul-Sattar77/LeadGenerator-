@@ -3,32 +3,37 @@
 @tailwind utilities;
 
 :root {
-  --background: 220 33% 98%;
-  --foreground: 222 47% 11%;
+  /* CRM v2 design tokens — slate neutrals + indigo accent (professional, restrained) */
+  --background: 210 20% 98%; /* slate-50 app canvas */
+  --foreground: 222 47% 11%; /* slate-900 */
 
   --card: 0 0% 100%;
   --card-foreground: 222 47% 11%;
 
-  --primary: 245 75% 59%;
+  --primary: 243 75% 58%; /* indigo-600 */
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 220 14% 96%;
+  --secondary: 210 40% 96%; /* slate-100 */
   --secondary-foreground: 222 47% 11%;
 
-  --muted: 220 14% 96%;
-  --muted-foreground: 220 9% 46%;
+  --muted: 210 40% 96%; /* slate-100 */
+  --muted-foreground: 215 16% 47%; /* slate-500 */
 
-  --accent: 245 80% 96%;
-  --accent-foreground: 245 75% 40%;
+  --accent: 226 100% 97%; /* indigo-50 */
+  --accent-foreground: 243 55% 41%; /* indigo-700 */
 
-  --destructive: 0 72% 51%;
+  --destructive: 347 77% 50%; /* rose-600 */
   --destructive-foreground: 0 0% 100%;
 
-  --border: 220 13% 91%;
-  --input: 220 13% 91%;
-  --ring: 245 75% 59%;
+  --success: 160 84% 39%; /* emerald-600 */
+  --warning: 38 92% 50%; /* amber-500 */
+  --info: 199 89% 48%; /* sky-500 */
 
-  --radius: 0.75rem;
+  --border: 214 32% 91%; /* slate-200 */
+  --input: 214 32% 91%;
+  --ring: 243 75% 58%;
+
+  --radius: 0.5rem;
 }
 
 * {
