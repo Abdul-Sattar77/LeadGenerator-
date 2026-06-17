@@ -24,3 +24,14 @@ export const updateTaskSchema = z.object({
 });
 
 export type UpdateTaskInput = z.infer<typeof updateTaskSchema>;
+
+// Task attached to a v2 record (company/contact/deal) — record link comes from the URL.
+export const createRecordTaskSchema = z.object({
+  title: z.string().trim().min(1, "Title is required.").max(200),
+  type: z.enum(TASK_TYPES).optional().default("CALL"),
+  priority: z.enum(TASK_PRIORITIES).optional().default("MEDIUM"),
+  dueDate: z.string().nullable().optional(),
+  assignedUserId: z.string().nullable().optional(),
+});
+
+export type CreateRecordTaskInput = z.infer<typeof createRecordTaskSchema>;

@@ -116,10 +116,19 @@ export async function updateTask(
 
   const task = await prisma.task.update({ where: { id }, data, include: INCLUDE });
 
-  if (input.status === "COMPLETED" && current.status !== "COMPLETED" && task.leadId) {
-    await prisma.activity.create({
-      data: { organizationId: ctx.organizationId, userId: ctx.userId, leadId: task.leadId, type: "TASK_COMPLETED" },
-    });
+  if (input.status === "COMPLETED" && current.status !== "COMPLETED") {
+    // Log completion to whichever record the task is attached to (lead or v2 entity).
+    const link = {
+      leadId: task.leadId ?? undefined,
+      companyId: task.companyId ?? undefined,
+      contactId: task.contactId ?? undefined,
+      dealId: task.dealId ?? undefined,
+    };
+    if (link.leadId || link.companyId || link.contactId || link.dealId) {
+      await prisma.activity.create({
+        data: { organizationId: ctx.organizationId, userId: ctx.userId, type: "TASK_COMPLETED", ...link },
+      });
+    }
   }
   return serializeTask(task);
 }

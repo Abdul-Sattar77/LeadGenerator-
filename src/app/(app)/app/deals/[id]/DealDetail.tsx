@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ActivityTimeline } from "@/components/app/ActivityTimeline";
+import { RecordTasks } from "@/components/app/RecordTasks";
+import { qk } from "@/lib/queryKeys";
 import { fadeUp } from "@/lib/motion";
 import { useDeal, useUpdateDeal, useAddDealNote } from "@/hooks/useDeals";
 import { toast } from "@/stores/toastStore";
@@ -108,6 +110,7 @@ export default function DealDetail({ id }: { id: string }) {
         <TabsList>
           <TabsTrigger value="activity">Activity</TabsTrigger>
           <TabsTrigger value="contacts">Contacts ({deal.contacts.length})</TabsTrigger>
+          <TabsTrigger value="tasks">Tasks</TabsTrigger>
         </TabsList>
 
         <TabsContent value="activity">
@@ -139,6 +142,12 @@ export default function DealDetail({ id }: { id: string }) {
                 ))}
               </ul>
             )}
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="tasks">
+          <Card className="p-6">
+            <RecordTasks apiBase={`/api/app/deals/${id}`} recordQueryKey={qk.deal(id)} />
           </Card>
         </TabsContent>
       </Tabs>
