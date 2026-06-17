@@ -8,6 +8,7 @@ import NotificationBell from "./_components/NotificationBell";
 import { Logo } from "@/components/Logo";
 import { CommandPalette } from "@/components/app/CommandPalette";
 import { CommandTrigger } from "@/components/app/CommandTrigger";
+import { PageTransition } from "@/components/app/PageTransition";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const ctx = await requireAuth();
@@ -35,7 +36,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <UserMenu name={ctx.name} role={ctx.role} />
           </div>
         </header>
-        <main className="min-w-0 flex-1 p-6 lg:p-8">{children}</main>
+        <main className="min-w-0 flex-1 p-6 lg:p-8">
+          <PageTransition>{children}</PageTransition>
+        </main>
         <CommandPalette />
       </div>
     </div>

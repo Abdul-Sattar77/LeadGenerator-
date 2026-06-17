@@ -77,7 +77,7 @@ export default function HomePage() {
                 <span className="pulse-ring absolute inline-flex h-full w-full rounded-full bg-primary/60" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
               </span>
-              Turn Google Maps into your lead list
+              From Google Maps to closed deals — one CRM
             </motion.span>
 
             <motion.h1
@@ -92,9 +92,9 @@ export default function HomePage() {
               variants={fadeUp}
               className="mx-auto mt-6 max-w-2xl text-balance text-lg text-muted-foreground sm:text-xl"
             >
-              Search any business type in any location and instantly get phone
-              numbers, ratings, websites and addresses — ready to export and
-              start selling.
+              Search any business type in any location to pull verified
+              companies and contacts — then work them through deals, a drag-and-drop
+              pipeline, tasks and email, all in one relational CRM.
             </motion.p>
 
             <motion.div variants={fadeUp} className="mx-auto mt-10 max-w-3xl">
