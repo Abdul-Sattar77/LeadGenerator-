@@ -8,7 +8,6 @@ export const createTaskSchema = z.object({
   priority: z.enum(TASK_PRIORITIES).optional().default("MEDIUM"),
   dueDate: z.string().nullable().optional(),
   assignedUserId: z.string().nullable().optional(),
-  leadId: z.coerce.number().int().nullable().optional(),
 });
 
 export type CreateTaskInput = z.infer<typeof createTaskSchema>;

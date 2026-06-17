@@ -14,15 +14,29 @@ export async function runDueReminders(): Promise<{ processed: number; emailed: n
     },
     include: {
       assignedUser: { select: { id: true, email: true, name: true } },
-      lead: { select: { id: true, name: true } },
+      contact: { select: { id: true, firstName: true, lastName: true } },
+      deal: { select: { id: true, name: true } },
+      company: { select: { id: true, name: true } },
     },
     take: 200,
   });
 
   let emailed = 0;
   for (const t of due) {
-    const leadPart = t.lead ? ` for ${t.lead.name}` : "";
-    const link = `${appUrl()}${t.leadId ? `/app/leads/${t.leadId}` : "/app/tasks"}`;
+    // Link to whichever record the task is attached to.
+    const path = t.dealId
+      ? `/app/deals/${t.dealId}`
+      : t.contactId
+        ? `/app/contacts/${t.contactId}`
+        : t.companyId
+          ? `/app/companies/${t.companyId}`
+          : "/app/tasks";
+    const recordName = t.deal?.name
+      ?? (t.contact ? `${t.contact.firstName} ${t.contact.lastName}`.trim() : null)
+      ?? t.company?.name
+      ?? null;
+    const leadPart = recordName ? ` for ${recordName}` : "";
+    const link = `${appUrl()}${path}`;
 
     if (t.assignedUser?.email) {
       const res = await sendEmail({
@@ -45,7 +59,7 @@ export async function runDueReminders(): Promise<{ processed: number; emailed: n
           type: "FOLLOW_UP",
           title: `Reminder: ${t.title}`,
           body: leadPart.trim(),
-          link: t.leadId ? `/app/leads/${t.leadId}` : "/app/tasks",
+          link: path,
         },
       });
     }

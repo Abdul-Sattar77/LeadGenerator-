@@ -9,7 +9,7 @@ export async function getBilling(ctx: TenantContext) {
   const [org, sub, leadCount, memberCount] = await Promise.all([
     prisma.organization.findUnique({ where: { id: ctx.organizationId }, select: { name: true, monthlyGoal: true } }),
     prisma.subscription.findUnique({ where: { organizationId: ctx.organizationId } }),
-    prisma.lead.count({ where: { organizationId: ctx.organizationId } }),
+    prisma.company.count({ where: { organizationId: ctx.organizationId } }),
     prisma.user.count({ where: { organizationId: ctx.organizationId } }),
   ]);
 

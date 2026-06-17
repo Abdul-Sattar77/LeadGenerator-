@@ -17,7 +17,7 @@ import { StatusBadge, ScoreBadge } from "@/components/leads/badges";
 import { LeadsByStage } from "../../DashboardCharts";
 import { toast } from "@/stores/toastStore";
 
-type Lead = { id: number; name: string; category: string; status: string; leadScore: number; dealValue: number | null; assignedUser: { id: string; name: string } | null };
+type Lead = { id: string; name: string; email: string | null; company: { id: string; name: string } | null; status: string; leadScore: number; assignedUser: { id: string; name: string } | null };
 type EmailStats = { sent: number; opened: number; clicked: number; openRate: number; clickRate: number };
 type Data = {
   campaign: { id: string; name: string; description: string; status: string; createdAt: string };
@@ -41,13 +41,13 @@ export default function CampaignDetailClient({ id, initial, addable }: { id: str
     if (!res.ok) { toast.error("Couldn’t update the campaign."); return; }
     router.refresh();
   }
-  async function removeLead(leadId: number) {
-    const res = await fetch(`/api/app/campaigns/${id}/leads?leadId=${leadId}`, { method: "DELETE" });
-    if (!res.ok) { toast.error("Couldn’t remove the lead."); return; }
+  async function removeLead(contactId: string) {
+    const res = await fetch(`/api/app/campaigns/${id}/leads?contactId=${contactId}`, { method: "DELETE" });
+    if (!res.ok) { toast.error("Couldn’t remove the contact."); return; }
     router.refresh();
   }
   async function del() {
-    if (!confirm("Delete this campaign? Leads stay in your CRM.")) return;
+    if (!confirm("Delete this campaign? Contacts stay in your CRM.")) return;
     await fetch(`/api/app/campaigns/${id}`, { method: "DELETE" });
     router.push("/app/campaigns");
   }
@@ -137,8 +137,8 @@ export default function CampaignDetailClient({ id, initial, addable }: { id: str
                 <thead>
                   <tr className="bg-secondary/40 text-xs uppercase tracking-wide text-muted-foreground">
                     <th className="px-5 py-3 font-medium">Lead</th>
-                    <th className="px-4 py-3 font-medium">Status</th>
-                    <th className="px-4 py-3 text-right font-medium">Value</th>
+                    <th className="px-4 py-3 font-medium">Lifecycle</th>
+                    <th className="px-4 py-3 text-right font-medium">Company</th>
                     <th className="px-4 py-3" />
                   </tr>
                 </thead>
@@ -148,12 +148,12 @@ export default function CampaignDetailClient({ id, initial, addable }: { id: str
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-2.5">
                           <Avatar name={l.name} size="sm" />
-                          <Link href={`/app/leads/${l.id}`} className="font-semibold hover:text-primary">{l.name}</Link>
+                          <Link href={`/app/contacts/${l.id}`} className="font-semibold hover:text-primary">{l.name}</Link>
                           <ScoreBadge score={l.leadScore} />
                         </div>
                       </td>
-                      <td className="px-4 py-3"><StatusBadge status={l.status} /></td>
-                      <td className="px-4 py-3 text-right tabular-nums">{l.dealValue ? fmtMoney(l.dealValue) : "—"}</td>
+                      <td className="px-4 py-3"><span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground">{l.status}</span></td>
+                      <td className="px-4 py-3 text-right text-sm text-muted-foreground">{l.company?.name ?? "—"}</td>
                       <td className="px-4 py-3 text-right">
                         <button onClick={() => removeLead(l.id)} className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-rose-600" title="Remove from campaign">
                           <X className="h-4 w-4" />
@@ -169,8 +169,18 @@ export default function CampaignDetailClient({ id, initial, addable }: { id: str
 
         {/* Breakdown */}
         <Card className="h-fit p-5">
-          <h2 className="mb-4 font-semibold">By stage</h2>
-          <LeadsByStage byStage={stats.byStatus} />
+          <h2 className="mb-4 font-semibold">By lifecycle</h2>
+          <div className="space-y-2.5">
+            {stats.byStatus.map((s) => (
+              <div key={s.status} className="flex items-center gap-3">
+                <span className="w-24 shrink-0 truncate text-xs font-medium text-muted-foreground">{s.status}</span>
+                <div className="h-4 flex-1 overflow-hidden rounded-md bg-secondary/50">
+                  <div className="h-full rounded-md bg-gradient-to-r from-indigo-400 to-violet-400" style={{ width: `${stats.total ? (s.count / stats.total) * 100 : 0}%` }} />
+                </div>
+                <span className="w-6 text-right text-xs font-bold">{s.count}</span>
+              </div>
+            ))}
+          </div>
         </Card>
       </div>
 
@@ -270,19 +280,19 @@ function CampaignEmailDialog({ id, recipients, onClose, onSent }: { id: string; 
 }
 
 function AddLeadsDialog({ id, addable, onClose, onDone }: { id: string; addable: Lead[]; onClose: () => void; onDone: () => void }) {
-  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
-  const toggle = (lid: number) => setSelected((s) => { const n = new Set(s); n.has(lid) ? n.delete(lid) : n.add(lid); return n; });
+  const toggle = (lid: string) => setSelected((s) => { const n = new Set(s); n.has(lid) ? n.delete(lid) : n.add(lid); return n; });
 
   async function save() {
     if (selected.size === 0) return;
     setSaving(true);
     const res = await fetch(`/api/app/campaigns/${id}/leads`, {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ leadIds: [...selected] }),
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contactIds: [...selected] }),
     });
     setSaving(false);
-    if (!res.ok) { toast.error("Couldn’t add the leads."); return; }
-    toast.success(`Added ${selected.size} lead${selected.size === 1 ? "" : "s"}.`);
+    if (!res.ok) { toast.error("Couldn’t add the contacts."); return; }
+    toast.success(`Added ${selected.size} contact${selected.size === 1 ? "" : "s"}.`);
     onDone();
   }
 
@@ -290,7 +300,7 @@ function AddLeadsDialog({ id, addable, onClose, onDone }: { id: string; addable:
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <Card className="flex max-h-[80vh] w-full max-w-lg flex-col p-0" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <h2 className="text-lg font-bold">Add leads</h2>
+          <h2 className="text-lg font-bold">Add contacts</h2>
           <button onClick={onClose} className="rounded-md p-1 text-muted-foreground hover:bg-secondary"><X className="h-5 w-5" /></button>
         </div>
         <div className="flex-1 overflow-y-auto p-2">
@@ -303,7 +313,7 @@ function AddLeadsDialog({ id, addable, onClose, onDone }: { id: string; addable:
               <Avatar name={l.name} size="sm" />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-medium">{l.name}</span>
-                <span className="block truncate text-xs text-muted-foreground">{l.category || "Lead"}</span>
+                <span className="block truncate text-xs text-muted-foreground">{l.company?.name || l.email || "Contact"}</span>
               </span>
               <ScoreBadge score={l.leadScore} />
             </button>

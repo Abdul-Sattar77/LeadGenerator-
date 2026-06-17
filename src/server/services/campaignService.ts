@@ -1,38 +1,52 @@
 import { prisma } from "@/server/db";
 import type { TenantContext } from "@/server/tenant";
-import { serializeLead } from "@/server/services/leadService";
 import { campaignEmailStats } from "@/server/services/emailService";
-import { LEAD_STATUSES } from "@/lib/enums";
 import { z } from "zod";
 import type { createCampaignSchema, updateCampaignSchema } from "@/lib/validations/campaign";
 
 type CreateInput = z.infer<typeof createCampaignSchema>;
 type UpdateInput = z.infer<typeof updateCampaignSchema>;
 
+const LIFECYCLE = ["LEAD", "QUALIFIED", "CUSTOMER", "EVANGELIST"] as const;
+
+function serializeContact(c: {
+  id: string; firstName: string; lastName: string; email: string | null;
+  lifecycleStage: string; leadScore: number;
+  company: { id: string; name: string } | null;
+  owner: { id: string; name: string } | null;
+}) {
+  return {
+    id: c.id,
+    name: `${c.firstName} ${c.lastName}`.trim(),
+    email: c.email,
+    company: c.company,
+    status: c.lifecycleStage,
+    leadScore: c.leadScore,
+    assignedUser: c.owner,
+  };
+}
+
+const CONTACT_SELECT = {
+  id: true, firstName: true, lastName: true, email: true, lifecycleStage: true, leadScore: true,
+  company: { select: { id: true, name: true } },
+  owner: { select: { id: true, name: true } },
+} as const;
+
 export async function listCampaigns(ctx: TenantContext) {
   const rows = await prisma.campaign.findMany({
     where: { organizationId: ctx.organizationId },
     orderBy: { createdAt: "desc" },
-    include: { _count: { select: { leads: true } } },
+    include: { _count: { select: { contacts: true } } },
   });
-
-  // Won count + value per campaign (single grouped query).
-  const wonAgg = await prisma.lead.groupBy({
-    by: ["campaignId"],
-    where: { organizationId: ctx.organizationId, status: "WON", campaignId: { not: null } },
-    _count: { _all: true },
-    _sum: { dealValue: true },
-  });
-  const wonMap = new Map(wonAgg.map((r) => [r.campaignId, { won: r._count._all, value: Number(r._sum.dealValue ?? 0) }]));
 
   return rows.map((c) => ({
     id: c.id,
     name: c.name,
     description: c.description,
     status: c.status,
-    leadCount: c._count.leads,
-    wonCount: wonMap.get(c.id)?.won ?? 0,
-    wonValue: wonMap.get(c.id)?.value ?? 0,
+    leadCount: c._count.contacts,
+    wonCount: 0,
+    wonValue: 0,
     createdAt: c.createdAt.toISOString(),
   }));
 }
@@ -55,17 +69,27 @@ export async function getCampaign(ctx: TenantContext, id: string) {
   });
   if (!campaign) return null;
 
-  const leadRows = await prisma.lead.findMany({
+  const contactRows = await prisma.contact.findMany({
     where: { organizationId: ctx.organizationId, campaignId: id },
-    include: { assignedUser: { select: { id: true, name: true } } },
-    orderBy: [{ leadScore: "desc" }, { savedAt: "desc" }],
+    select: CONTACT_SELECT,
+    orderBy: [{ leadScore: "desc" }, { createdAt: "desc" }],
   });
-  const leads = leadRows.map(serializeLead);
+  const leads = contactRows.map(serializeContact);
 
-  const byStatus = LEAD_STATUSES.map((s) => ({ status: s, count: leads.filter((l) => l.status === s).length }));
-  const won = leads.filter((l) => l.status === "WON");
+  // Deal aggregates for the campaign's contacts (won / pipeline value).
+  const contactIds = contactRows.map((c) => c.id);
+  const deals = contactIds.length
+    ? await prisma.deal.findMany({
+        where: { organizationId: ctx.organizationId, primaryContactId: { in: contactIds } },
+        select: { value: true, status: true },
+      })
+    : [];
+  const won = deals.filter((d) => d.status === "WON");
+  const open = deals.filter((d) => d.status === "OPEN");
+
+  const byStatus = LIFECYCLE.map((s) => ({ status: s, count: leads.filter((l) => l.status === s).length }));
   const emailStats = await campaignEmailStats(ctx, id);
-  const withEmail = leads.filter((l) => Boolean((l as { email?: string }).email)).length;
+  const withEmail = leads.filter((l) => Boolean(l.email)).length;
 
   return {
     campaign: {
@@ -80,8 +104,8 @@ export async function getCampaign(ctx: TenantContext, id: string) {
       total: leads.length,
       withEmail,
       wonCount: won.length,
-      wonValue: won.reduce((s, l) => s + (l.dealValue ?? 0), 0),
-      pipelineValue: leads.filter((l) => l.status !== "WON" && l.status !== "LOST").reduce((s, l) => s + (l.dealValue ?? 0), 0),
+      wonValue: won.reduce((s, d) => s + Number(d.value ?? 0), 0),
+      pipelineValue: open.reduce((s, d) => s + Number(d.value ?? 0), 0),
       byStatus,
       email: emailStats,
     },
@@ -98,36 +122,36 @@ export async function updateCampaign(ctx: TenantContext, id: string, input: Upda
 }
 
 export async function deleteCampaign(ctx: TenantContext, id: string): Promise<boolean> {
-  // Detach leads first (keep the leads, just remove campaign membership).
-  await prisma.lead.updateMany({ where: { organizationId: ctx.organizationId, campaignId: id }, data: { campaignId: null } });
+  // Detach contacts first (keep them, just remove campaign membership).
+  await prisma.contact.updateMany({ where: { organizationId: ctx.organizationId, campaignId: id }, data: { campaignId: null } });
   const res = await prisma.campaign.deleteMany({ where: { id, organizationId: ctx.organizationId } });
   return res.count > 0;
 }
 
-export async function addLeadsToCampaign(ctx: TenantContext, id: string, leadIds: number[]): Promise<number> {
+export async function addContactsToCampaign(ctx: TenantContext, id: string, contactIds: string[]): Promise<number> {
   const campaign = await prisma.campaign.findFirst({ where: { id, organizationId: ctx.organizationId }, select: { id: true } });
   if (!campaign) return 0;
-  const res = await prisma.lead.updateMany({
-    where: { id: { in: leadIds }, organizationId: ctx.organizationId },
+  const res = await prisma.contact.updateMany({
+    where: { id: { in: contactIds }, organizationId: ctx.organizationId },
     data: { campaignId: id },
   });
   return res.count;
 }
 
-export async function removeLeadFromCampaign(ctx: TenantContext, id: string, leadId: number): Promise<boolean> {
-  const res = await prisma.lead.updateMany({
-    where: { id: leadId, organizationId: ctx.organizationId, campaignId: id },
+export async function removeContactFromCampaign(ctx: TenantContext, id: string, contactId: string): Promise<boolean> {
+  const res = await prisma.contact.updateMany({
+    where: { id: contactId, organizationId: ctx.organizationId, campaignId: id },
     data: { campaignId: null },
   });
   return res.count > 0;
 }
 
-/** Leads not yet in any campaign — candidates to add. */
-export async function listAddableLeads(ctx: TenantContext) {
-  const rows = await prisma.lead.findMany({
+/** Contacts not yet in any campaign — candidates to add. */
+export async function listAddableContacts(ctx: TenantContext) {
+  const rows = await prisma.contact.findMany({
     where: { organizationId: ctx.organizationId, campaignId: null },
-    include: { assignedUser: { select: { id: true, name: true } } },
-    orderBy: [{ leadScore: "desc" }, { savedAt: "desc" }],
+    select: CONTACT_SELECT,
+    orderBy: [{ leadScore: "desc" }, { createdAt: "desc" }],
   });
-  return rows.map(serializeLead);
+  return rows.map(serializeContact);
 }

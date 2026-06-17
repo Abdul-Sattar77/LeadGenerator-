@@ -12,6 +12,6 @@ export const updateCampaignSchema = z.object({
   status: z.enum(CAMPAIGN_STATUSES).optional(),
 });
 
-export const addLeadsSchema = z.object({
-  leadIds: z.array(z.coerce.number().int()).min(1, "Select at least one lead."),
+export const addContactsSchema = z.object({
+  contactIds: z.array(z.string().min(1)).min(1, "Select at least one contact."),
 });

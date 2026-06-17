@@ -13,13 +13,3 @@ export async function isOrgMember(ctx: TenantContext, userId: string | null | un
   });
   return Boolean(u);
 }
-
-/** True if `leadId` belongs to the caller's org (null/undefined allowed). */
-export async function isOrgLead(ctx: TenantContext, leadId: number | null | undefined): Promise<boolean> {
-  if (leadId == null) return true;
-  const l = await prisma.lead.findFirst({
-    where: { id: leadId, organizationId: ctx.organizationId },
-    select: { id: true },
-  });
-  return Boolean(l);
-}

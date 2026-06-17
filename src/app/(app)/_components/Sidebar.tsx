@@ -5,11 +5,9 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Search,
-  Users,
   Building2,
   Contact2,
   Handshake,
-  KanbanSquare,
   CheckSquare,
   Megaphone,
   BarChart3,
@@ -32,12 +30,10 @@ type Item = {
 
 const NAV: Item[] = [
   { href: "/app", label: "Overview", icon: LayoutDashboard, live: true },
-  { href: "/app/discover", label: "Discover Leads", icon: Search, live: true },
-  { href: "/app/leads", label: "Leads", icon: Users, live: true },
+  { href: "/app/discover", label: "Discover", icon: Search, live: true },
   { href: "/app/companies", label: "Companies", icon: Building2, live: true },
   { href: "/app/contacts", label: "Contacts", icon: Contact2, live: true },
   { href: "/app/deals", label: "Deals", icon: Handshake, live: true },
-  { href: "/app/pipeline", label: "Pipeline (legacy)", icon: KanbanSquare, live: true },
   { href: "/app/tasks", label: "Tasks", icon: CheckSquare, live: true },
   { href: "/app/campaigns", label: "Campaigns", icon: Megaphone, minRole: "MANAGER", live: true },
   { href: "/app/reports", label: "Reports", icon: BarChart3, minRole: "MANAGER", live: true },

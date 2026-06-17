@@ -15,7 +15,6 @@ import { LocalTime } from "@/components/ui/local-time";
 import { toast } from "@/stores/toastStore";
 
 type Member = { id: string; name: string; role: string };
-type LeadRef = { id: number; name: string };
 type Task = {
   id: string;
   title: string;
@@ -24,7 +23,6 @@ type Task = {
   priority: string;
   dueDate: string | null;
   assignedUser: { id: string; name: string } | null;
-  lead: { id: number; name: string } | null;
 };
 
 const TYPE_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -43,7 +41,7 @@ const VIEWS = [
   { key: "all", label: "All" },
 ];
 
-export default function TasksClient({ members, leads }: { members: Member[]; leads: LeadRef[] }) {
+export default function TasksClient({ members }: { members: Member[] }) {
   const qc = useQueryClient();
   const [view, setView] = useState("open");
   const [showNew, setShowNew] = useState(false);
@@ -150,10 +148,7 @@ export default function TasksClient({ members, leads }: { members: Member[]; lea
                       {t.title}
                     </div>
                     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                      {t.lead && (
-                        <Link href={`/app/leads/${t.lead.id}`} className="hover:text-primary">{t.lead.name}</Link>
-                      )}
-                      {t.assignedUser && <span>· {t.assignedUser.name}</span>}
+                      {t.assignedUser && <span>{t.assignedUser.name}</span>}
                     </div>
                   </div>
 
@@ -177,14 +172,14 @@ export default function TasksClient({ members, leads }: { members: Member[]; lea
         )}
       </Card>
 
-      {showNew && <NewTaskDialog members={members} leads={leads} onClose={() => setShowNew(false)} />}
+      {showNew && <NewTaskDialog members={members} onClose={() => setShowNew(false)} />}
     </div>
   );
 }
 
-function NewTaskDialog({ members, leads, onClose }: { members: Member[]; leads: LeadRef[]; onClose: () => void }) {
+function NewTaskDialog({ members, onClose }: { members: Member[]; onClose: () => void }) {
   const qc = useQueryClient();
-  const [form, setForm] = useState({ title: "", type: "CALL", priority: "MEDIUM", dueDate: "", assignedUserId: "", leadId: "" });
+  const [form, setForm] = useState({ title: "", type: "CALL", priority: "MEDIUM", dueDate: "", assignedUserId: "" });
   const [error, setError] = useState("");
   const set = (k: string) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -199,7 +194,6 @@ function NewTaskDialog({ members, leads, onClose }: { members: Member[]; leads: 
           priority: form.priority,
           dueDate: form.dueDate || null,
           assignedUserId: form.assignedUserId || null,
-          leadId: form.leadId ? Number(form.leadId) : null,
         }),
       });
       const data = await res.json();
@@ -224,7 +218,6 @@ function NewTaskDialog({ members, leads, onClose }: { members: Member[]; leads: 
           </div>
           <Input label="Due date" type="date" value={form.dueDate} onChange={set("dueDate")} />
           <Select label="Assign to" value={form.assignedUserId} onChange={set("assignedUserId")} options={[["", "Me"], ...members.map((m) => [m.id, m.name] as [string, string])]} />
-          <Select label="Related lead (optional)" value={form.leadId} onChange={set("leadId")} options={[["", "None"], ...leads.map((l) => [String(l.id), l.name] as [string, string])]} />
 
           {error && <p className="text-sm font-medium text-destructive">{error}</p>}
           <div className="flex justify-end gap-2 pt-1">

@@ -4,7 +4,6 @@
 // unions in src/lib/enums.ts) and money as `Decimal`, so this single schema runs
 // on SQLite for local dev AND PostgreSQL in production. To go to prod, change the
 // datasource `provider` to "postgresql" and set DATABASE_URL — no schema rewrite.
-// The legacy `Lead` model below is kept as-is; it gets org-scoped in Phase 2.
 
 generator client {
   provider = "prisma-client-js"
@@ -28,7 +27,6 @@ model Organization {
   users          User[]
   pipelines      Pipeline[]
   subscription   Subscription?
-  leads          Lead[]
   campaigns      Campaign[]
   emailTemplates EmailTemplate[]
   emails         EmailMessage[]
@@ -49,7 +47,7 @@ model Campaign {
   createdAt      DateTime @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  leads        Lead[]
+  contacts     Contact[]
   emails       EmailMessage[]
 
   @@index([organizationId])
@@ -76,7 +74,7 @@ model EmailMessage {
   id             String    @id @default(cuid())
   organizationId String
   templateId     String?
-  leadId         Int?
+  contactId      String?
   campaignId     String?
   fromUserId     String?
   toEmail        String
@@ -93,12 +91,12 @@ model EmailMessage {
 
   organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   template     EmailTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  lead         Lead?          @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  contact      Contact?       @relation(fields: [contactId], references: [id], onDelete: Cascade)
   campaign     Campaign?      @relation(fields: [campaignId], references: [id], onDelete: SetNull)
   fromUser     User?          @relation(fields: [fromUserId], references: [id], onDelete: SetNull)
 
   @@index([organizationId, status])
-  @@index([leadId])
+  @@index([contactId])
   @@index([campaignId])
 }
 
@@ -117,7 +115,6 @@ model User {
 
   organization  Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   accounts      Account[]
-  assignedLeads Lead[]       @relation("LeadAssignee")
   tasks         Task[]       @relation("TaskAssignee")
   createdTasks  Task[]       @relation("TaskCreator")
   notifications Notification[]
@@ -231,60 +228,7 @@ model Subscription {
 
 // ─────────────────────── LEGACY LEAD (Phase 2 will org-scope this) ───────────────────────
 
-model Lead {
-  id Int @id @default(autoincrement())
 
-  // Stable identity = lowercased "name|address" (matches the old leadId()).
-  key String @unique
-
-  // --- Business data (from Google Places) ---
-  name           String
-  category       String  @default("")
-  phone          String  @default("")
-  rating         Float?
-  reviews        Int?
-  website        String  @default("")
-  maps           String  @default("")
-  address        String  @default("")
-  businessStatus String  @default("")
-
-  // --- CRM fields (legacy, used by the public /dashboard & /priorities pages) ---
-  stage        String    @default("New") // New | Contacted | Interested | Closed Won | Closed Lost
-  notes        String    @default("")
-  tags         String    @default("[]") // JSON-encoded array of strings (SQLite has no scalar lists)
-  followUpDate DateTime?
-
-  // --- Phase 2: tenant-scoped CRM fields (nullable so legacy leads keep working) ---
-  organizationId String?
-  assignedUserId String?
-  contactPerson  String  @default("")
-  email          String  @default("")
-  industry       String  @default("")
-  source         String  @default("GOOGLE_MAPS") // GOOGLE_MAPS | MANUAL | IMPORT | REFERRAL | WEBSITE
-  status         String   @default("NEW") // LEAD_STATUSES (NEW | CONTACTED | QUALIFIED | ...)
-  leadScore      Int      @default(0) // 0–100
-  scoreBreakdown String? // JSON-encoded {factor: points}
-  dealValue      Decimal? // potential/closed deal value (the lead = the opportunity)
-  expectedCloseDate DateTime?
-  wonAt          DateTime? // set when status becomes WON (for revenue-by-month)
-  customData     String? // JSON map of custom field values
-  campaignId     String?
-
-  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  assignedUser User?         @relation("LeadAssignee", fields: [assignedUserId], references: [id], onDelete: SetNull)
-  campaign     Campaign?     @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  activities   Activity[]
-  crmNotes     Note[]
-  tasks        Task[]
-  emails       EmailMessage[]
-
-  savedAt   DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([organizationId, status])
-  @@index([assignedUserId])
-  @@index([campaignId])
-}
 
 // Chronological audit trail shown on the lead timeline.
 model Activity {
@@ -292,20 +236,17 @@ model Activity {
   organizationId String
   type           String // ActivityType (CALL | EMAIL | MEETING | NOTE_ADDED | STAGE_CHANGED | ...)
   userId         String?
-  leadId         Int?
   companyId      String?
   contactId      String?
   dealId         String?
   metadata       String? // JSON-encoded extra detail, e.g. {"from":"NEW","to":"CONTACTED"}
   createdAt      DateTime @default(now())
 
-  lead    Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
   company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   contact Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
   deal    Deal?    @relation(fields: [dealId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, createdAt])
-  @@index([leadId])
   @@index([contactId])
   @@index([companyId])
   @@index([dealId])
@@ -325,7 +266,6 @@ model Task {
   remindedAt     DateTime? // set once the due-reminder email has been sent
   assignedUserId String?
   createdById    String?
-  leadId         Int?
   companyId      String?
   contactId      String?
   dealId         String?
@@ -333,14 +273,12 @@ model Task {
 
   assignedUser User?    @relation("TaskAssignee", fields: [assignedUserId], references: [id], onDelete: SetNull)
   createdBy    User?    @relation("TaskCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  lead         Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
   company      Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   contact      Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
   deal         Deal?    @relation(fields: [dealId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, status])
   @@index([assignedUserId, dueDate])
-  @@index([leadId])
   @@index([contactId])
   @@index([dealId])
 }
@@ -351,18 +289,15 @@ model Note {
   organizationId String
   body           String
   userId         String?
-  leadId         Int?
   companyId      String?
   contactId      String?
   dealId         String?
   createdAt      DateTime @default(now())
 
-  lead    Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
   company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   contact Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
   deal    Deal?    @relation(fields: [dealId], references: [id], onDelete: Cascade)
 
-  @@index([leadId])
   @@index([contactId])
   @@index([dealId])
 }
@@ -410,6 +345,7 @@ model Contact {
   phone          String?
   title          String? // job title
   ownerId        String?
+  campaignId     String?
   source         String   @default("MANUAL")
   lifecycleStage String   @default("LEAD") // LEAD | QUALIFIED | CUSTOMER | EVANGELIST
   leadScore      Int      @default(0)
@@ -420,16 +356,19 @@ model Contact {
   organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   company         Company?     @relation(fields: [companyId], references: [id], onDelete: SetNull)
   owner           User?        @relation("ContactOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  campaign        Campaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
   dealLinks       DealContact[]
   primaryForDeals Deal[]       @relation("DealPrimaryContact")
   activities      Activity[]
   tasks           Task[]
   notes           Note[]
+  emails          EmailMessage[]
   tagLinks        TagLink[]
 
   @@index([organizationId])
   @@index([companyId])
   @@index([ownerId])
+  @@index([campaignId])
 }
 
 model Deal {

@@ -51,9 +51,9 @@ function textToHtml(text: string): string {
   return esc.split(/\n{2,}/).map((p) => `<p>${p.replace(/\n/g, "<br/>")}</p>`).join("\n");
 }
 
-export async function listLeadEmails(ctx: TenantContext, leadId: number) {
+export async function listContactEmails(ctx: TenantContext, contactId: string) {
   const rows = await prisma.emailMessage.findMany({
-    where: { organizationId: ctx.organizationId, leadId },
+    where: { organizationId: ctx.organizationId, contactId },
     orderBy: { createdAt: "desc" },
   });
   return rows.map(serializeEmail);
@@ -71,18 +71,18 @@ function serializeEmail(m: { id: string; toEmail: string; subject: string; statu
   };
 }
 
-export async function sendToLead(
+export async function sendToContact(
   ctx: TenantContext,
-  input: { leadId: number; subject: string; body: string; templateId?: string | null; campaignId?: string | null }
+  input: { contactId: string; subject: string; body: string; templateId?: string | null; campaignId?: string | null }
 ): Promise<{ ok: true; delivered: boolean } | { ok: false; error: string }> {
-  const lead = await prisma.lead.findFirst({
-    where: { id: input.leadId, organizationId: ctx.organizationId },
-    select: { id: true, name: true, email: true, contactPerson: true },
+  const contact = await prisma.contact.findFirst({
+    where: { id: input.contactId, organizationId: ctx.organizationId },
+    select: { id: true, firstName: true, email: true, company: { select: { name: true } } },
   });
-  if (!lead) return { ok: false, error: "Lead not found." };
-  if (!lead.email) return { ok: false, error: "This lead has no email address." };
+  if (!contact) return { ok: false, error: "Contact not found." };
+  if (!contact.email) return { ok: false, error: "This contact has no email address." };
 
-  const vars = { name: lead.name, contact: lead.contactPerson || "there" };
+  const vars = { name: contact.company?.name || contact.firstName, contact: contact.firstName || "there" };
   const subject = renderTemplate(input.subject, vars);
   const bodyText = renderTemplate(input.body, vars);
 
@@ -90,11 +90,11 @@ export async function sendToLead(
   const msg = await prisma.emailMessage.create({
     data: {
       organizationId: ctx.organizationId,
-      leadId: lead.id,
+      contactId: contact.id,
       templateId: input.templateId ?? null,
       campaignId: input.campaignId ?? null,
       fromUserId: ctx.userId,
-      toEmail: lead.email,
+      toEmail: contact.email,
       subject,
       body: bodyText,
       status: "SENT",
@@ -103,7 +103,7 @@ export async function sendToLead(
 
   const html = rewriteLinksForTracking(textToHtml(bodyText), msg.trackingId) + trackingPixel(msg.trackingId);
   // Send from the user's connected Gmail when available, else the system mailer.
-  const result = await sendForUser(ctx.userId, { to: lead.email, subject, html });
+  const result = await sendForUser(ctx.userId, { to: contact.email, subject, html });
 
   const status = result.error ? "FAILED" : result.delivered ? "SENT" : "SIMULATED";
   await prisma.emailMessage.update({
@@ -113,7 +113,7 @@ export async function sendToLead(
 
   if (!result.error) {
     await prisma.activity.create({
-      data: { organizationId: ctx.organizationId, userId: ctx.userId, leadId: lead.id, type: "EMAIL_SENT", metadata: JSON.stringify({ subject }) },
+      data: { organizationId: ctx.organizationId, userId: ctx.userId, contactId: contact.id, type: "EMAIL_SENT", metadata: JSON.stringify({ subject }) },
     });
   }
 
@@ -121,22 +121,22 @@ export async function sendToLead(
   return { ok: true, delivered: result.delivered };
 }
 
-/** Send a templated email to every lead in a campaign that has an email address. */
+/** Send a templated email to every contact in a campaign that has an email address. */
 export async function sendCampaignEmails(
   ctx: TenantContext,
   campaignId: string,
   input: { subject: string; body: string; templateId?: string | null }
 ): Promise<{ sent: number; skipped: number }> {
-  const leads = await prisma.lead.findMany({
+  const contacts = await prisma.contact.findMany({
     where: { organizationId: ctx.organizationId, campaignId },
     select: { id: true, email: true },
   });
 
   let sent = 0;
   let skipped = 0;
-  for (const lead of leads) {
-    if (!lead.email) { skipped++; continue; }
-    const res = await sendToLead(ctx, { leadId: lead.id, subject: input.subject, body: input.body, templateId: input.templateId, campaignId });
+  for (const contact of contacts) {
+    if (!contact.email) { skipped++; continue; }
+    const res = await sendToContact(ctx, { contactId: contact.id, subject: input.subject, body: input.body, templateId: input.templateId, campaignId });
     if (res.ok) sent++;
     else skipped++;
   }

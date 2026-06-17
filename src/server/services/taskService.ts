@@ -16,7 +16,6 @@ function isOverdue(status: string, dueDate: Date | null): boolean {
 function serializeTask(
   row: NonNullable<TaskRow> & {
     assignedUser?: { id: string; name: string } | null;
-    lead?: { id: number; name: string } | null;
   }
 ) {
   return {
@@ -30,7 +29,6 @@ function serializeTask(
     dueDate: row.dueDate ? row.dueDate.toISOString() : null,
     completedAt: row.completedAt ? row.completedAt.toISOString() : null,
     assignedUser: row.assignedUser ? { id: row.assignedUser.id, name: row.assignedUser.name } : null,
-    lead: row.lead ? { id: row.lead.id, name: row.lead.name } : null,
     createdAt: row.createdAt.toISOString(),
   };
 }
@@ -39,17 +37,15 @@ export type SerializedTask = ReturnType<typeof serializeTask>;
 
 const INCLUDE = {
   assignedUser: { select: { id: true, name: true } },
-  lead: { select: { id: true, name: true } },
 } as const;
 
 export async function listTasks(
   ctx: TenantContext,
-  filters: { view?: string; leadId?: number } = {}
+  filters: { view?: string } = {}
 ): Promise<SerializedTask[]> {
   const rows = await prisma.task.findMany({
     where: {
       organizationId: ctx.organizationId,
-      ...(filters.leadId ? { leadId: filters.leadId } : {}),
       ...(filters.view === "completed" ? { status: "COMPLETED" } : {}),
       ...(filters.view === "open" ? { status: { not: "COMPLETED" } } : {}),
     },
@@ -73,16 +69,10 @@ export async function createTask(ctx: TenantContext, input: CreateTaskInput): Pr
       dueDate: input.dueDate ? new Date(input.dueDate) : null,
       assignedUserId: input.assignedUserId ?? ctx.userId,
       createdById: ctx.userId,
-      leadId: input.leadId ?? null,
     },
     include: INCLUDE,
   });
 
-  if (task.leadId) {
-    await prisma.activity.create({
-      data: { organizationId: ctx.organizationId, userId: ctx.userId, leadId: task.leadId, type: "TASK_CREATED" },
-    });
-  }
   // Notify the assignee if the task was assigned to someone else.
   if (task.assignedUserId && task.assignedUserId !== ctx.userId) {
     await notify(ctx.organizationId, task.assignedUserId, {
@@ -119,12 +109,11 @@ export async function updateTask(
   if (input.status === "COMPLETED" && current.status !== "COMPLETED") {
     // Log completion to whichever record the task is attached to (lead or v2 entity).
     const link = {
-      leadId: task.leadId ?? undefined,
       companyId: task.companyId ?? undefined,
       contactId: task.contactId ?? undefined,
       dealId: task.dealId ?? undefined,
     };
-    if (link.leadId || link.companyId || link.contactId || link.dealId) {
+    if (link.companyId || link.contactId || link.dealId) {
       await prisma.activity.create({
         data: { organizationId: ctx.organizationId, userId: ctx.userId, type: "TASK_COMPLETED", ...link },
       });
