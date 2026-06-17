@@ -74,13 +74,12 @@ export default function DiscoverClient() {
     if (saved[k]) return;
     setSaved((s) => ({ ...s, [k]: "saving" }));
     try {
-      const res = await fetch("/api/app/leads", {
+      const res = await fetch("/api/app/discover/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: r.name,
           category: r.category ?? "",
-          industry: r.category ?? "",
           phone: r.phone ?? "",
           website: r.website ?? "",
           address: r.address ?? "",
@@ -90,7 +89,7 @@ export default function DiscoverClient() {
         }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Couldn’t save this lead.");
+      if (!res.ok) throw new Error(data.error || "Couldn’t save this company.");
       setSaved((s) => ({ ...s, [k]: "saved" }));
     } catch (e) {
       setSaved((s) => {
@@ -267,8 +266,8 @@ export default function DiscoverClient() {
 
       {savedCount > 0 && (
         <div className="flex justify-center">
-          <Link href="/app/leads">
-            <Button variant="ghost">View {savedCount} saved in Leads <ArrowRight className="h-4 w-4" /></Button>
+          <Link href="/app/companies">
+            <Button variant="ghost">View {savedCount} saved in Companies <ArrowRight className="h-4 w-4" /></Button>
           </Link>
         </div>
       )}
