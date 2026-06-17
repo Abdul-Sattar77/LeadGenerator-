@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Building2, Search, Plus, Loader2, Users, Briefcase, Globe, MapPin } from "lucide-react";
@@ -28,6 +28,9 @@ export default function CompaniesClient() {
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
   const [showNew, setShowNew] = useState(false);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("new") === "1") setShowNew(true);
+  }, []);
   const { data, isLoading } = useCompanies({ q, page });
   const companies = data?.companies ?? [];
   const total = data?.total ?? 0;

@@ -42,6 +42,9 @@ export default function DealsBoard() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [showNew, setShowNew] = useState(false);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("new") === "1") setShowNew(true);
+  }, []);
 
   // Keep local board in sync with the server (and after optimistic moves settle).
   useEffect(() => {

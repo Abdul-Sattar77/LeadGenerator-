@@ -6,6 +6,8 @@ import UserMenu from "./_components/UserMenu";
 import MobileMenuButton from "./_components/MobileMenuButton";
 import NotificationBell from "./_components/NotificationBell";
 import { Logo } from "@/components/Logo";
+import { CommandPalette } from "@/components/app/CommandPalette";
+import { CommandTrigger } from "@/components/app/CommandTrigger";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const ctx = await requireAuth();
@@ -27,12 +29,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <MobileMenuButton />
             <Link href="/app"><Logo size={26} /></Link>
           </div>
-          <div className="ml-auto flex items-center gap-1.5">
+          <div className="ml-auto flex items-center gap-2">
+            <CommandTrigger />
             <NotificationBell />
             <UserMenu name={ctx.name} role={ctx.role} />
           </div>
         </header>
         <main className="min-w-0 flex-1 p-6 lg:p-8">{children}</main>
+        <CommandPalette />
       </div>
     </div>
   );

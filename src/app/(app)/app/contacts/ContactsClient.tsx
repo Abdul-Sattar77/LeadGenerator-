@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Contact2, Search, Plus, Loader2, Mail, Phone } from "lucide-react";
@@ -30,6 +30,9 @@ export default function ContactsClient() {
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
   const [showNew, setShowNew] = useState(false);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("new") === "1") setShowNew(true);
+  }, []);
   const { data, isLoading } = useContacts({ q, page });
   const contacts = data?.contacts ?? [];
   const total = data?.total ?? 0;

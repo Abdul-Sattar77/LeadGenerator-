@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ACTIVITY_LABEL } from "@/lib/leadStatus";
 import { ConversionFunnel, LeadsByStage, KpiRow, MiniBars } from "./DashboardCharts";
+import { CrmSummary } from "@/components/app/CrmSummary";
 
 export const dynamic = "force-dynamic";
 
@@ -64,6 +65,9 @@ export default async function OverviewPage() {
           </Link>
         </div>
       </div>
+
+      {/* CRM v2 relational snapshot — companies, contacts, deals */}
+      <CrmSummary />
 
       {kpis.totalLeads === 0 ? (
         <Card className="relative overflow-hidden p-8 sm:p-10">
