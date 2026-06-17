@@ -5,7 +5,7 @@ import { getReports } from "@/server/services/reportsService";
 import Forbidden from "@/app/(app)/_components/Forbidden";
 import { Card } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
-import { KpiRow, LeadsByStage } from "../DashboardCharts";
+import { KpiRow } from "../DashboardCharts";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +22,7 @@ export default async function ReportsPage() {
   const { lead, sales, team } = await getReports(ctx);
 
   const kpis = [
-    { label: "Total leads", value: lead.total, icon: "users" as const, tone: "indigo" as const },
+    { label: "Companies", value: lead.total, icon: "users" as const, tone: "indigo" as const },
     { label: "New (30d)", value: lead.last30, icon: "check" as const, tone: "sky" as const },
     { label: "Won revenue", value: fmtMoney(sales.wonRevenue), icon: "dollar" as const, tone: "emerald" as const },
     { label: "Win rate", value: `${sales.winRate}%`, icon: "percent" as const, tone: "violet" as const },
@@ -30,6 +30,7 @@ export default async function ReportsPage() {
   ];
 
   const maxSource = Math.max(1, ...lead.bySource.map((s) => s.count));
+  const maxStage = Math.max(1, ...lead.byStatus.map((s) => s.count));
 
   return (
     <div className="mx-auto max-w-6xl space-y-7">
@@ -39,8 +40,8 @@ export default async function ReportsPage() {
           <p className="mt-1 text-muted-foreground">Lead, sales &amp; team performance — export anytime.</p>
         </div>
         <div className="flex gap-2">
-          <a href="/api/app/reports?type=leads" className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/70 bg-white/80 px-4 text-sm font-semibold shadow-soft backdrop-blur transition hover:bg-white">
-            <Download className="h-4 w-4" /> Leads CSV
+          <a href="/api/app/reports?type=companies" className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/70 bg-white/80 px-4 text-sm font-semibold shadow-soft backdrop-blur transition hover:bg-white">
+            <Download className="h-4 w-4" /> Companies CSV
           </a>
           <a href="/api/app/reports?type=team" className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/70 bg-white/80 px-4 text-sm font-semibold shadow-soft backdrop-blur transition hover:bg-white">
             <Download className="h-4 w-4" /> Team CSV
@@ -51,15 +52,26 @@ export default async function ReportsPage() {
       <KpiRow items={kpis} />
 
       <div className="grid gap-5 lg:grid-cols-2">
-        {/* Leads by stage */}
+        {/* Deals by stage */}
         <Card className="p-6">
-          <h2 className="mb-5 font-semibold">Leads by stage</h2>
-          <LeadsByStage byStage={lead.byStatus} />
+          <h2 className="mb-5 font-semibold">Deals by stage</h2>
+          <div className="space-y-2.5">
+            {lead.byStatus.map((s) => (
+              <div key={s.status} className="flex items-center gap-3">
+                <span className="w-28 shrink-0 truncate text-xs font-medium text-muted-foreground">{s.status}</span>
+                <div className="h-5 flex-1 overflow-hidden rounded-md bg-secondary/50">
+                  <div className="h-full rounded-md bg-gradient-to-r from-indigo-400 to-violet-400" style={{ width: `${(s.count / maxStage) * 100}%` }} />
+                </div>
+                <span className="w-6 text-right text-xs font-bold">{s.count}</span>
+              </div>
+            ))}
+            {lead.byStatus.length === 0 && <p className="text-sm text-muted-foreground">No deals yet.</p>}
+          </div>
         </Card>
 
-        {/* Lead sources */}
+        {/* Sources */}
         <Card className="p-6">
-          <h2 className="mb-5 font-semibold">Lead sources</h2>
+          <h2 className="mb-5 font-semibold">Company sources</h2>
           <div className="space-y-2.5">
             {lead.bySource.map((s) => (
               <div key={s.source} className="flex items-center gap-3">
@@ -70,7 +82,7 @@ export default async function ReportsPage() {
                 <span className="w-6 text-right text-xs font-bold">{s.count}</span>
               </div>
             ))}
-            {lead.bySource.length === 0 && <p className="text-sm text-muted-foreground">No leads yet.</p>}
+            {lead.bySource.length === 0 && <p className="text-sm text-muted-foreground">No companies yet.</p>}
           </div>
         </Card>
       </div>

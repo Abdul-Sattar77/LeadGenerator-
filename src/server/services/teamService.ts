@@ -17,22 +17,22 @@ export interface MemberRow {
 }
 
 export async function listMembers(ctx: TenantContext): Promise<MemberRow[]> {
-  const [users, leadCounts, wonAgg, openTasks] = await Promise.all([
+  const [users, companyCounts, wonAgg, openTasks] = await Promise.all([
     prisma.user.findMany({
       where: { organizationId: ctx.organizationId },
       select: { id: true, name: true, email: true, role: true },
       orderBy: { name: "asc" },
     }),
-    prisma.lead.groupBy({
-      by: ["assignedUserId"],
-      where: { organizationId: ctx.organizationId, assignedUserId: { not: null } },
+    prisma.company.groupBy({
+      by: ["ownerId"],
+      where: { organizationId: ctx.organizationId, ownerId: { not: null } },
       _count: { _all: true },
     }),
-    prisma.lead.groupBy({
-      by: ["assignedUserId"],
-      where: { organizationId: ctx.organizationId, status: "WON", assignedUserId: { not: null } },
+    prisma.deal.groupBy({
+      by: ["ownerId"],
+      where: { organizationId: ctx.organizationId, status: "WON", ownerId: { not: null } },
       _count: { _all: true },
-      _sum: { dealValue: true },
+      _sum: { value: true },
     }),
     prisma.task.groupBy({
       by: ["assignedUserId"],
@@ -41,9 +41,9 @@ export async function listMembers(ctx: TenantContext): Promise<MemberRow[]> {
     }),
   ]);
 
-  const leadMap = new Map(leadCounts.map((r) => [r.assignedUserId, r._count._all]));
-  const wonCountMap = new Map(wonAgg.map((r) => [r.assignedUserId, r._count._all]));
-  const wonValueMap = new Map(wonAgg.map((r) => [r.assignedUserId, Number(r._sum.dealValue ?? 0)]));
+  const leadMap = new Map(companyCounts.map((r) => [r.ownerId, r._count._all]));
+  const wonCountMap = new Map(wonAgg.map((r) => [r.ownerId, r._count._all]));
+  const wonValueMap = new Map(wonAgg.map((r) => [r.ownerId, Number(r._sum.value ?? 0)]));
   const taskMap = new Map(openTasks.map((r) => [r.assignedUserId, r._count._all]));
 
   return users.map((u) => ({
@@ -110,7 +110,9 @@ export async function removeMember(ctx: TenantContext, userId: string): Promise<
   // Detach explicitly (don't rely on DB-level onDelete, which SQLite may not
   // enforce) so the delete never fails on a foreign-key reference.
   await prisma.$transaction([
-    prisma.lead.updateMany({ where: { organizationId: ctx.organizationId, assignedUserId: userId }, data: { assignedUserId: null } }),
+    prisma.company.updateMany({ where: { organizationId: ctx.organizationId, ownerId: userId }, data: { ownerId: null } }),
+    prisma.contact.updateMany({ where: { organizationId: ctx.organizationId, ownerId: userId }, data: { ownerId: null } }),
+    prisma.deal.updateMany({ where: { organizationId: ctx.organizationId, ownerId: userId }, data: { ownerId: null } }),
     prisma.task.updateMany({ where: { organizationId: ctx.organizationId, assignedUserId: userId }, data: { assignedUserId: null } }),
     prisma.task.updateMany({ where: { organizationId: ctx.organizationId, createdById: userId }, data: { createdById: null } }),
     prisma.notification.deleteMany({ where: { userId } }),

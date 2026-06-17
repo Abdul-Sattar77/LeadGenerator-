@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getTenantContext } from "@/server/tenant";
 import { roleAtLeast } from "@/lib/enums";
-import { leadsCsv, teamCsv } from "@/server/services/reportsService";
+import { companiesCsv, teamCsv } from "@/server/services/reportsService";
 
 export const dynamic = "force-dynamic";
 
@@ -11,8 +11,8 @@ export async function GET(request: Request) {
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!roleAtLeast(ctx.role, "MANAGER")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const type = new URL(request.url).searchParams.get("type") || "leads";
-  const csv = type === "team" ? await teamCsv(ctx) : await leadsCsv(ctx);
+  const type = new URL(request.url).searchParams.get("type") || "companies";
+  const csv = type === "team" ? await teamCsv(ctx) : await companiesCsv(ctx);
   const filename = `${type}-report.csv`;
 
   return new NextResponse(csv, {
