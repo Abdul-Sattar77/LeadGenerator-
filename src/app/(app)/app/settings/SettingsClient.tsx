@@ -93,7 +93,7 @@ export default function SettingsClient({ billing, upgraded, gmail, googleConfigu
             <Sparkles className="h-4 w-4" />
           </span>
           <div className="text-sm">
-            <span className="font-semibold">You’re on {PLANS[upgraded as PlanTier].name}!</span> Your subscription is active — enjoy unlimited leads.
+            <span className="font-semibold">You’re on {PLANS[upgraded as PlanTier].name}!</span> Your subscription is active — enjoy unlimited companies.
           </div>
         </div>
       )}
@@ -181,7 +181,7 @@ export default function SettingsClient({ billing, upgraded, gmail, googleConfigu
         <div className="grid gap-6 sm:grid-cols-2">
           <div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Leads</span>
+              <span className="text-muted-foreground">Companies</span>
               <span className="font-semibold">
                 {billing.leadCount}{limit != null ? ` / ${limit}` : " / ∞"}
               </span>

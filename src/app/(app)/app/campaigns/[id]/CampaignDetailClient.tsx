@@ -53,7 +53,7 @@ export default function CampaignDetailClient({ id, initial, addable }: { id: str
   }
 
   const tiles = [
-    { label: "Leads", value: stats.total, icon: Users, tone: "from-indigo-500 to-violet-500" },
+    { label: "Contacts", value: stats.total, icon: Users, tone: "from-indigo-500 to-violet-500" },
     { label: "Won", value: stats.wonCount, icon: Trophy, tone: "from-emerald-500 to-teal-500" },
     { label: "Won revenue", value: fmtMoney(stats.wonValue), icon: DollarSign, tone: "from-emerald-500 to-green-500" },
     { label: "Pipeline value", value: fmtMoney(stats.pipelineValue), icon: TrendingUp, tone: "from-sky-500 to-blue-500" },
@@ -85,7 +85,7 @@ export default function CampaignDetailClient({ id, initial, addable }: { id: str
           >
             {CAMPAIGN_STATUSES.map((s) => <option key={s} value={s}>{CAMPAIGN_STATUS_META[s].label}</option>)}
           </select>
-          <Button variant="gradient" onClick={() => setShowEmail(true)} disabled={stats.withEmail === 0} title={stats.withEmail ? "Email this campaign" : "No leads with an email address"}>
+          <Button variant="gradient" onClick={() => setShowEmail(true)} disabled={stats.withEmail === 0} title={stats.withEmail ? "Email this campaign" : "No contacts with an email address"}>
             <Mail className="h-4 w-4" /> Email campaign
           </Button>
           <Button variant="outline" onClick={del} className="text-rose-600 hover:bg-rose-50">
@@ -124,19 +124,19 @@ export default function CampaignDetailClient({ id, initial, addable }: { id: str
         {/* Leads */}
         <Card className="overflow-hidden p-0">
           <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
-            <h2 className="font-semibold">Leads in campaign</h2>
+            <h2 className="font-semibold">Contacts in campaign</h2>
             <Button variant="gradient" size="sm" onClick={() => setShowAdd(true)} disabled={addable.length === 0}>
-              <Plus className="h-4 w-4" /> Add leads
+              <Plus className="h-4 w-4" /> Add contacts
             </Button>
           </div>
           {leads.length === 0 ? (
-            <EmptyState icon={Users} title="No leads yet" description="Add leads from your CRM to this campaign." />
+            <EmptyState icon={Users} title="No contacts yet" description="Add contacts from your CRM to this campaign." />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="bg-secondary/40 text-xs uppercase tracking-wide text-muted-foreground">
-                    <th className="px-5 py-3 font-medium">Lead</th>
+                    <th className="px-5 py-3 font-medium">Contact</th>
                     <th className="px-4 py-3 font-medium">Lifecycle</th>
                     <th className="px-4 py-3 text-right font-medium">Company</th>
                     <th className="px-4 py-3" />
@@ -234,7 +234,7 @@ function CampaignEmailDialog({ id, recipients, onClose, onSent }: { id: string; 
     const data = await res.json().catch(() => ({}));
     setSending(false);
     if (!res.ok) { toast.error(data.error || "Couldn’t send."); return; }
-    toast.success(`Sent to ${data.sent} lead${data.sent === 1 ? "" : "s"}${data.skipped ? ` · ${data.skipped} skipped` : ""}.`);
+    toast.success(`Sent to ${data.sent} contact${data.sent === 1 ? "" : "s"}${data.skipped ? ` · ${data.skipped} skipped` : ""}.`);
     onSent();
   }
 
@@ -245,7 +245,7 @@ function CampaignEmailDialog({ id, recipients, onClose, onSent }: { id: string; 
           <h2 className="text-lg font-bold">Email campaign</h2>
           <button onClick={onClose} className="rounded-md p-1 text-muted-foreground hover:bg-secondary"><X className="h-5 w-5" /></button>
         </div>
-        <p className="mt-1 text-sm text-muted-foreground">Sends to <span className="font-semibold text-foreground">{recipients}</span> lead{recipients === 1 ? "" : "s"} with an email. <span className="text-muted-foreground/70">{"{{name}}"} / {"{{contact}}"} are personalised per lead.</span></p>
+        <p className="mt-1 text-sm text-muted-foreground">Sends to <span className="font-semibold text-foreground">{recipients}</span> contact{recipients === 1 ? "" : "s"} with an email. <span className="text-muted-foreground/70">{"{{name}}"} / {"{{contact}}"} are personalised per contact.</span></p>
 
         <div className="mt-4 space-y-3 overflow-y-auto">
           <label className="block">

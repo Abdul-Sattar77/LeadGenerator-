@@ -32,7 +32,7 @@ export default function CampaignsClient({ initial }: { initial: Campaign[] }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight">Campaigns</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Group leads into outreach campaigns and track results.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Group contacts into outreach campaigns and track results.</p>
         </div>
         <Button variant="gradient" onClick={() => setShowNew(true)}>
           <Plus className="h-4 w-4" /> New campaign
@@ -44,7 +44,7 @@ export default function CampaignsClient({ initial }: { initial: Campaign[] }) {
           <EmptyState
             icon={Megaphone}
             title="No campaigns yet"
-            description="Create a campaign like “Karachi Dentists” and add leads to it."
+            description="Create a campaign like “Karachi Dentists” and add contacts to it."
             action={<Button variant="gradient" size="sm" onClick={() => setShowNew(true)}><Plus className="h-4 w-4" /> New campaign</Button>}
           />
         </Card>
