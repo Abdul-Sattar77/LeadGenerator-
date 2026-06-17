@@ -6,6 +6,8 @@ import {
   LayoutDashboard,
   Search,
   Users,
+  Building2,
+  Contact2,
   KanbanSquare,
   CheckSquare,
   Megaphone,
@@ -31,6 +33,8 @@ const NAV: Item[] = [
   { href: "/app", label: "Overview", icon: LayoutDashboard, live: true },
   { href: "/app/discover", label: "Discover Leads", icon: Search, live: true },
   { href: "/app/leads", label: "Leads", icon: Users, live: true },
+  { href: "/app/companies", label: "Companies", icon: Building2, live: true },
+  { href: "/app/contacts", label: "Contacts", icon: Contact2, live: true },
   { href: "/app/pipeline", label: "Pipeline", icon: KanbanSquare, live: true },
   { href: "/app/tasks", label: "Tasks", icon: CheckSquare, live: true },
   { href: "/app/campaigns", label: "Campaigns", icon: Megaphone, minRole: "MANAGER", live: true },
@@ -44,7 +48,7 @@ function NavList({ role, onNavigate }: { role: string; onNavigate?: () => void }
   return (
     <nav className="flex-1 space-y-1 overflow-y-auto p-3">
       {NAV.filter((i) => !i.minRole || roleAtLeast(role, i.minRole)).map((item) => {
-        const active = pathname === item.href;
+        const active = item.href === "/app" ? pathname === "/app" : pathname.startsWith(item.href);
         const disabled = !item.live;
         const Icon = item.icon;
         const content = (

@@ -8,7 +8,7 @@ const variants = {
   muted: "bg-secondary text-muted-foreground",
 };
 
-export function Badge({ className, variant = "default", ...props }) {
+export function Badge({ className = "", variant = "default", ...props }) {
   return (
     <span
       className={cn(
