@@ -52,6 +52,100 @@ export function StageBars({ data, showValue = true, money = false }: { data: Sta
   );
 }
 
+export interface LineSeries {
+  key: string;
+  name: string;
+  color: string;
+}
+
+/** Modern multi-series line chart (animated draw-in, dots, grid, legend). */
+export function LineChart({
+  data,
+  series,
+  height = 240,
+}: {
+  data: Record<string, any>[];
+  series: LineSeries[];
+  height?: number;
+}) {
+  const W = 640;
+  const H = height;
+  const pad = { l: 34, r: 14, t: 16, b: 26 };
+  const innerW = W - pad.l - pad.r;
+  const innerH = H - pad.t - pad.b;
+  const n = data.length;
+
+  const max = Math.max(1, ...data.flatMap((d) => series.map((s) => Number(d[s.key]) || 0)));
+  const niceMax = Math.ceil(max / 4) * 4 || 4;
+
+  const x = (i: number) => (n <= 1 ? pad.l + innerW / 2 : pad.l + (i / (n - 1)) * innerW);
+  const y = (v: number) => pad.t + innerH - (v / niceMax) * innerH;
+
+  const gridVals = [0, 0.25, 0.5, 0.75, 1].map((f) => Math.round(niceMax * f));
+
+  return (
+    <div className="w-full">
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height }} preserveAspectRatio="none">
+        {/* gridlines + y labels */}
+        {gridVals.map((gv) => (
+          <g key={gv}>
+            <line x1={pad.l} x2={W - pad.r} y1={y(gv)} y2={y(gv)} className="stroke-border" strokeWidth={1} strokeDasharray="3 4" />
+            <text x={pad.l - 8} y={y(gv) + 3} textAnchor="end" className="fill-muted-foreground" style={{ fontSize: 9 }}>{gv}</text>
+          </g>
+        ))}
+        {/* x labels */}
+        {data.map((d, i) => (
+          <text key={i} x={x(i)} y={H - 8} textAnchor="middle" className="fill-muted-foreground" style={{ fontSize: 9 }}>{d.label}</text>
+        ))}
+
+        {series.map((s) => {
+          const pts = data.map((d, i) => `${x(i)},${y(Number(d[s.key]) || 0)}`).join(" ");
+          return (
+            <g key={s.key}>
+              <motion.polyline
+                points={pts}
+                fill="none"
+                stroke={s.color}
+                strokeWidth={2.5}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                initial={{ pathLength: 0, opacity: 0 }}
+                whileInView={{ pathLength: 1, opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 1, ease: EASE }}
+              />
+              {data.map((d, i) => (
+                <motion.circle
+                  key={i}
+                  cx={x(i)}
+                  cy={y(Number(d[s.key]) || 0)}
+                  r={3}
+                  fill="white"
+                  stroke={s.color}
+                  strokeWidth={2}
+                  initial={{ opacity: 0, scale: 0 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.3, delay: 0.5 + i * 0.05 }}
+                />
+              ))}
+            </g>
+          );
+        })}
+      </svg>
+
+      <div className="mt-2 flex flex-wrap justify-center gap-4">
+        {series.map((s) => (
+          <span key={s.key} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span className="h-2.5 w-2.5 rounded-full" style={{ background: s.color }} />
+            {s.name}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export interface DonutDatum {
   label: string;
   value: number;

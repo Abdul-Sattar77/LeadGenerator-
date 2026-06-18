@@ -7,7 +7,7 @@ import { Building2, Contact2, Handshake, TrendingUp, Trophy, Percent } from "luc
 import { Card } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import { CountUp } from "@/components/app/CountUp";
-import { StageBars } from "@/components/app/charts";
+import { StageBars, LineChart } from "@/components/app/charts";
 import { fadeUp, stagger } from "@/lib/motion";
 
 interface Summary {
@@ -18,6 +18,7 @@ interface Summary {
   wonValue: number;
   winRate: number;
   stages: { id: string; name: string; kind: string; count: number; value: number }[];
+  timeseries: { label: string; companies: number; contacts: number; deals: number }[];
 }
 
 const money = (n: number) =>
@@ -64,12 +65,27 @@ export function CrmSummary() {
         })}
       </motion.div>
 
-      {data.stages.length > 0 && (
-        <Card className="p-6">
-          <h2 className="mb-4 text-sm font-semibold">Pipeline by stage</h2>
-          <StageBars data={data.stages} money />
+      <div className="grid gap-5 lg:grid-cols-5">
+        <Card className="p-6 lg:col-span-3">
+          <h2 className="mb-1 text-sm font-semibold">Growth — last 6 months</h2>
+          <p className="mb-3 text-xs text-muted-foreground">New records added each month</p>
+          <LineChart
+            data={data.timeseries}
+            series={[
+              { key: "companies", name: "Companies", color: "#6366f1" },
+              { key: "contacts", name: "Contacts", color: "#0ea5e9" },
+              { key: "deals", name: "Deals", color: "#10b981" },
+            ]}
+          />
         </Card>
-      )}
+
+        {data.stages.length > 0 && (
+          <Card className="p-6 lg:col-span-2">
+            <h2 className="mb-4 text-sm font-semibold">Pipeline by stage</h2>
+            <StageBars data={data.stages} money />
+          </Card>
+        )}
+      </div>
     </div>
   );
 }
