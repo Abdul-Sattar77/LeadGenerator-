@@ -10,7 +10,7 @@ export const GET = route({}, async ({ ctx, req }) => {
   const pageSize = Math.min(50, Math.max(5, parseInt(searchParams.get("pageSize") || "20", 10) || 20));
   const result = await listCompanies(
     ctx,
-    { q: searchParams.get("q") || undefined, ownerId: searchParams.get("ownerId") || undefined },
+    { q: searchParams.get("q") || undefined, ownerId: searchParams.get("ownerId") || undefined, tagId: searchParams.get("tagId") || undefined },
     page,
     pageSize
   );

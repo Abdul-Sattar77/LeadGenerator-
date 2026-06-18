@@ -16,6 +16,7 @@ export interface ContactRow {
   leadScore: number;
   company: { id: string; name: string } | null;
   owner: { id: string; name: string } | null;
+  tags: { id: string; name: string; color: string }[];
   dealCount: number;
   createdAt: string;
 }

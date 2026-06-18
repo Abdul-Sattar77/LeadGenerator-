@@ -7,6 +7,7 @@ import type { CreateCompanyInput, UpdateCompanyInput } from "@/lib/validations/c
 export interface CompanyFilters {
   q?: string;
   ownerId?: string;
+  tagId?: string;
 }
 
 export async function listCompanies(
@@ -18,6 +19,7 @@ export async function listCompanies(
   const where = {
     organizationId: ctx.organizationId,
     ...(filters.ownerId ? { ownerId: filters.ownerId } : {}),
+    ...(filters.tagId ? { tagLinks: { some: { tagId: filters.tagId } } } : {}),
     ...(filters.q
       ? {
           OR: [
@@ -38,6 +40,7 @@ export async function listCompanies(
       take: pageSize,
       include: {
         owner: { select: { id: true, name: true } },
+        tagLinks: { include: { tag: { select: { id: true, name: true, color: true } } } },
         _count: { select: { contacts: true, deals: true } },
       },
     }),
@@ -66,6 +69,7 @@ export async function listCompanies(
       country: c.country,
       phone: c.phone,
       owner: c.owner,
+      tags: c.tagLinks.map((tl) => tl.tag),
       contactCount: c._count.contacts,
       dealCount: c._count.deals,
       openValue: valueOf.get(c.id) ?? 0,
@@ -88,6 +92,7 @@ export async function getCompany(ctx: TenantContext, id: string) {
         orderBy: { createdAt: "desc" },
         include: { stage: { select: { name: true, kind: true } } },
       },
+      tagLinks: { include: { tag: { select: { id: true, name: true, color: true } } } },
     },
   });
   if (!company) return null;

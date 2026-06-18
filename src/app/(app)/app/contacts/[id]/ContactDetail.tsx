@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ActivityTimeline } from "@/components/app/ActivityTimeline";
 import { RecordTasks } from "@/components/app/RecordTasks";
 import { LogActivity } from "@/components/app/LogActivity";
+import { TagEditor } from "@/components/app/TagEditor";
 import { qk } from "@/lib/queryKeys";
 import { fadeUp } from "@/lib/motion";
 import { useContact, useAddContactNote } from "@/hooks/useContacts";
@@ -67,6 +68,9 @@ export default function ContactDetail({ id }: { id: string }) {
               {contact.company && <Link href={`/app/companies/${contact.company.id}`} className="flex items-center gap-1.5 hover:text-primary"><Building2 className="h-4 w-4" />{contact.company.name}</Link>}
               {contact.email && <a href={`mailto:${contact.email}`} className="flex items-center gap-1.5 hover:text-primary"><Mail className="h-4 w-4" />{contact.email}</a>}
               {contact.phone && <a href={`tel:${contact.phone}`} className="flex items-center gap-1.5 hover:text-primary"><Phone className="h-4 w-4" />{contact.phone}</a>}
+            </div>
+            <div className="mt-3">
+              <TagEditor apiBase={`/api/app/contacts/${id}`} tags={(contact.tagLinks ?? []).map((tl: any) => tl.tag)} recordQueryKey={qk.contact(id)} />
             </div>
           </div>
           {contact.owner && <Badge variant="muted">Owner · {contact.owner.name}</Badge>}

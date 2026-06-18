@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ActivityTimeline } from "@/components/app/ActivityTimeline";
 import { RecordTasks } from "@/components/app/RecordTasks";
 import { LogActivity } from "@/components/app/LogActivity";
+import { TagEditor } from "@/components/app/TagEditor";
 import { qk } from "@/lib/queryKeys";
 import { fadeUp } from "@/lib/motion";
 import { useCompany, useAddCompanyNote } from "@/hooks/useCompanies";
@@ -64,6 +65,9 @@ export default function CompanyDetail({ id }: { id: string }) {
               {company.website && <a href={company.website.startsWith("http") ? company.website : `https://${company.website}`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 hover:text-primary"><Globe className="h-4 w-4" />{company.website.replace(/^https?:\/\//, "")}</a>}
               {company.phone && <a href={`tel:${company.phone}`} className="flex items-center gap-1.5 hover:text-primary"><Phone className="h-4 w-4" />{company.phone}</a>}
               {(company.city || company.country) && <span className="flex items-center gap-1.5"><MapPin className="h-4 w-4" />{[company.city, company.country].filter(Boolean).join(", ")}</span>}
+            </div>
+            <div className="mt-3">
+              <TagEditor apiBase={`/api/app/companies/${id}`} tags={(company.tagLinks ?? []).map((tl: any) => tl.tag)} recordQueryKey={qk.company(id)} />
             </div>
           </div>
           {company.owner && <Badge variant="muted">Owner · {company.owner.name}</Badge>}

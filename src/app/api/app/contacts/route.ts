@@ -15,6 +15,7 @@ export const GET = route({}, async ({ ctx, req }) => {
       ownerId: searchParams.get("ownerId") || undefined,
       companyId: searchParams.get("companyId") || undefined,
       lifecycleStage: searchParams.get("lifecycleStage") || undefined,
+      tagId: searchParams.get("tagId") || undefined,
     },
     page,
     pageSize

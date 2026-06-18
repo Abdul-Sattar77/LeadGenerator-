@@ -15,6 +15,7 @@ export interface CompanyRow {
   country: string | null;
   phone: string | null;
   owner: { id: string; name: string } | null;
+  tags: { id: string; name: string; color: string }[];
   contactCount: number;
   dealCount: number;
   openValue: number;
@@ -24,6 +25,7 @@ export interface CompanyRow {
 interface CompanyListParams {
   q?: string;
   page?: number;
+  tagId?: string;
 }
 
 export function useCompanies(params: CompanyListParams) {
@@ -31,7 +33,7 @@ export function useCompanies(params: CompanyListParams) {
     queryKey: qk.companies(params),
     queryFn: () =>
       api<{ companies: CompanyRow[]; total: number; page: number; pageSize: number }>(
-        `/api/app/companies${qs({ q: params.q, page: params.page })}`
+        `/api/app/companies${qs({ q: params.q, page: params.page, tagId: params.tagId })}`
       ),
   });
 }

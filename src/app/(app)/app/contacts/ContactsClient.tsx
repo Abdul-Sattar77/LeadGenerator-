@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/app/PageHeader";
+import { TagChips } from "@/components/app/TagEditor";
 import { fadeUp, stagger } from "@/lib/motion";
 import { useContacts, useCreateContact, type ContactRow } from "@/hooks/useContacts";
 import { toast } from "@/stores/toastStore";
@@ -99,6 +100,7 @@ export default function ContactsClient() {
                         <span className="min-w-0">
                           <span className="block truncate font-medium text-foreground group-hover:text-primary">{c.firstName} {c.lastName}</span>
                           {c.title && <span className="block truncate text-xs text-muted-foreground">{c.title}</span>}
+                          {c.tags?.length > 0 && <span className="mt-1 block"><TagChips tags={c.tags} /></span>}
                         </span>
                       </Link>
                     </TableCell>

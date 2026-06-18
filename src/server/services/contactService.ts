@@ -9,6 +9,7 @@ export interface ContactFilters {
   ownerId?: string;
   companyId?: string;
   lifecycleStage?: string;
+  tagId?: string;
 }
 
 async function assertCompanyInOrg(ctx: TenantContext, companyId?: string) {
@@ -31,6 +32,7 @@ export async function listContacts(
     ...(filters.ownerId ? { ownerId: filters.ownerId } : {}),
     ...(filters.companyId ? { companyId: filters.companyId } : {}),
     ...(filters.lifecycleStage ? { lifecycleStage: filters.lifecycleStage } : {}),
+    ...(filters.tagId ? { tagLinks: { some: { tagId: filters.tagId } } } : {}),
     ...(filters.q
       ? {
           OR: [
@@ -52,6 +54,7 @@ export async function listContacts(
       include: {
         owner: { select: { id: true, name: true } },
         company: { select: { id: true, name: true } },
+        tagLinks: { include: { tag: { select: { id: true, name: true, color: true } } } },
         _count: { select: { dealLinks: true } },
       },
     }),
@@ -70,6 +73,7 @@ export async function listContacts(
       leadScore: c.leadScore,
       company: c.company,
       owner: c.owner,
+      tags: c.tagLinks.map((tl) => tl.tag),
       dealCount: c._count.dealLinks,
       createdAt: c.createdAt,
     })),
@@ -88,6 +92,7 @@ export async function getContact(ctx: TenantContext, id: string) {
           deal: { include: { stage: { select: { name: true, kind: true } } } },
         },
       },
+      tagLinks: { include: { tag: { select: { id: true, name: true, color: true } } } },
     },
   });
   if (!contact) return null;

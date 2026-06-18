@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/app/PageHeader";
+import { TagChips } from "@/components/app/TagEditor";
 import { fadeUp, stagger } from "@/lib/motion";
 import { useCompanies, useCreateCompany, type CompanyRow } from "@/hooks/useCompanies";
 import { toast } from "@/stores/toastStore";
@@ -102,6 +103,7 @@ export default function CompaniesClient() {
                             <Globe className="h-3 w-3" /> {c.website.replace(/^https?:\/\//, "")}
                           </span>
                         )}
+                        {c.tags?.length > 0 && <span className="mt-1 block"><TagChips tags={c.tags} /></span>}
                       </span>
                     </Link>
                   </TableCell>
