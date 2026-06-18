@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { EASE } from "@/lib/motion";
 
@@ -58,7 +59,7 @@ export interface LineSeries {
   color: string;
 }
 
-/** Modern multi-series line chart (animated draw-in, dots, grid, legend). */
+/** Modern interactive multi-series line chart — drag/hover a crosshair to read values. */
 export function LineChart({
   data,
   series,
@@ -75,28 +76,73 @@ export function LineChart({
   const innerH = H - pad.t - pad.b;
   const n = data.length;
 
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState<number | null>(null);
+
   const max = Math.max(1, ...data.flatMap((d) => series.map((s) => Number(d[s.key]) || 0)));
   const niceMax = Math.ceil(max / 4) * 4 || 4;
 
   const x = (i: number) => (n <= 1 ? pad.l + innerW / 2 : pad.l + (i / (n - 1)) * innerW);
   const y = (v: number) => pad.t + innerH - (v / niceMax) * innerH;
-
   const gridVals = [0, 0.25, 0.5, 0.75, 1].map((f) => Math.round(niceMax * f));
 
+  // Map a pointer position to the nearest data index (works with viewBox scaling).
+  function track(clientX: number) {
+    const el = wrapRef.current;
+    if (!el || n === 0) return;
+    const rect = el.getBoundingClientRect();
+    const vx = ((clientX - rect.left) / rect.width) * W;
+    let best = 0;
+    let bestD = Infinity;
+    for (let i = 0; i < n; i++) {
+      const d = Math.abs(x(i) - vx);
+      if (d < bestD) { bestD = d; best = i; }
+    }
+    setActive(best);
+  }
+
   return (
-    <div className="w-full">
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height }} preserveAspectRatio="none">
-        {/* gridlines + y labels */}
+    <div className="relative w-full select-none" ref={wrapRef}>
+      {/* Tooltip */}
+      {active != null && (
+        <div
+          className="pointer-events-none absolute z-10 -translate-x-1/2 rounded-lg border border-border bg-card px-3 py-2 text-xs shadow-lg"
+          style={{ left: `${(x(active) / W) * 100}%`, top: 0 }}
+        >
+          <div className="mb-1 font-semibold text-foreground">{data[active]?.label}</div>
+          {series.map((s) => (
+            <div key={s.key} className="flex items-center gap-2 whitespace-nowrap">
+              <span className="h-2 w-2 rounded-full" style={{ background: s.color }} />
+              <span className="text-muted-foreground">{s.name}</span>
+              <span className="ml-auto font-semibold tabular-nums">{Number(data[active]?.[s.key]) || 0}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        className="w-full touch-none"
+        style={{ height }}
+        preserveAspectRatio="none"
+        onPointerMove={(e) => track(e.clientX)}
+        onPointerDown={(e) => track(e.clientX)}
+        onPointerLeave={() => setActive(null)}
+      >
         {gridVals.map((gv) => (
           <g key={gv}>
             <line x1={pad.l} x2={W - pad.r} y1={y(gv)} y2={y(gv)} className="stroke-border" strokeWidth={1} strokeDasharray="3 4" />
             <text x={pad.l - 8} y={y(gv) + 3} textAnchor="end" className="fill-muted-foreground" style={{ fontSize: 9 }}>{gv}</text>
           </g>
         ))}
-        {/* x labels */}
         {data.map((d, i) => (
           <text key={i} x={x(i)} y={H - 8} textAnchor="middle" className="fill-muted-foreground" style={{ fontSize: 9 }}>{d.label}</text>
         ))}
+
+        {/* Crosshair */}
+        {active != null && (
+          <line x1={x(active)} x2={x(active)} y1={pad.t} y2={pad.t + innerH} className="stroke-primary/40" strokeWidth={1.5} strokeDasharray="4 3" />
+        )}
 
         {series.map((s) => {
           const pts = data.map((d, i) => `${x(i)},${y(Number(d[s.key]) || 0)}`).join(" ");
@@ -115,18 +161,15 @@ export function LineChart({
                 transition={{ duration: 1, ease: EASE }}
               />
               {data.map((d, i) => (
-                <motion.circle
+                <circle
                   key={i}
                   cx={x(i)}
                   cy={y(Number(d[s.key]) || 0)}
-                  r={3}
+                  r={active === i ? 5 : 3}
                   fill="white"
                   stroke={s.color}
                   strokeWidth={2}
-                  initial={{ opacity: 0, scale: 0 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.3, delay: 0.5 + i * 0.05 }}
+                  className="transition-all"
                 />
               ))}
             </g>

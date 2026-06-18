@@ -8,15 +8,14 @@ import SettingsClient from "./SettingsClient";
 
 export const dynamic = "force-dynamic";
 
-export default async function SettingsPage({ searchParams }: { searchParams: { upgraded?: string; gmail?: string } }) {
+export default async function SettingsPage({ searchParams }: { searchParams: { gmail?: string } }) {
   const ctx = await requireAuth();
   if (!roleAtLeast(ctx.role, "ADMIN")) return <Forbidden need="Admin" />;
 
   const [billing, gmail] = await Promise.all([getBilling(ctx), getConnectedGmail(ctx.userId)]);
   return (
     <SettingsClient
-      billing={billing}
-      upgraded={searchParams.upgraded ?? null}
+      billing={{ orgName: billing.orgName, monthlyGoal: billing.monthlyGoal }}
       gmail={gmail}
       googleConfigured={googleEnabled()}
       gmailStatus={searchParams.gmail ?? null}
