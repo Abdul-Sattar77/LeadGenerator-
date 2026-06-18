@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 import { EASE } from "@/lib/motion";
 
 function k(n: number): string {
@@ -195,8 +196,9 @@ export interface DonutDatum {
   color: string;
 }
 
-/** Modern animated SVG donut with center total + legend. */
+/** Interactive animated SVG donut — hover/drag a slice to highlight it. */
 export function DonutChart({ data, unit = "", size = 168 }: { data: DonutDatum[]; unit?: string; size?: number }) {
+  const [active, setActive] = useState<number | null>(null);
   const total = data.reduce((s, d) => s + d.value, 0);
   const stroke = 18;
   const r = (size - stroke) / 2;
@@ -213,37 +215,61 @@ export function DonutChart({ data, unit = "", size = 168 }: { data: DonutDatum[]
       return seg;
     });
 
+  const focus = active != null ? segs[active] : null;
+
   return (
     <div className="flex flex-wrap items-center gap-6">
-      <div className="relative shrink-0" style={{ width: size, height: size }}>
-        <svg width={size} height={size} className="-rotate-90">
+      <div className="relative shrink-0" style={{ width: size, height: size }} onPointerLeave={() => setActive(null)}>
+        <svg width={size} height={size} className="-rotate-90 overflow-visible">
           <circle cx={cx} cy={cx} r={r} fill="none" stroke="currentColor" strokeWidth={stroke} className="text-secondary/70" />
-          {segs.map((s, i) => (
-            <motion.circle
-              key={s.label}
-              cx={cx}
-              cy={cx}
-              r={r}
-              fill="none"
-              stroke={s.color}
-              strokeWidth={stroke}
-              strokeLinecap="round"
-              strokeDasharray={`${s.dash} ${s.gap}`}
-              initial={{ strokeDashoffset: c }}
-              whileInView={{ strokeDashoffset: -((s.rot / 360) * c) }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.9, ease: EASE, delay: i * 0.12 }}
-            />
-          ))}
+          {segs.map((s, i) => {
+            const dim = active != null && active !== i;
+            return (
+              <g key={s.label}>
+                <motion.circle
+                  cx={cx} cy={cx} r={r} fill="none" stroke={s.color}
+                  strokeLinecap="round"
+                  strokeDasharray={`${s.dash} ${s.gap}`}
+                  initial={{ strokeDashoffset: c }}
+                  whileInView={{ strokeDashoffset: -((s.rot / 360) * c) }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.9, ease: EASE, delay: i * 0.12 }}
+                  animate={{ strokeWidth: active === i ? stroke + 6 : stroke, opacity: dim ? 0.4 : 1 }}
+                />
+                {/* wide invisible hit-area for easy hovering */}
+                <circle
+                  cx={cx} cy={cx} r={r} fill="none" stroke="transparent" strokeWidth={stroke + 14}
+                  strokeDasharray={`${s.dash} ${s.gap}`}
+                  strokeDashoffset={-((s.rot / 360) * c)}
+                  className="cursor-pointer"
+                  onPointerEnter={() => setActive(i)}
+                />
+              </g>
+            );
+          })}
         </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-2xl font-bold tabular-nums">{total}</span>
-          {unit && <span className="text-xs text-muted-foreground">{unit}</span>}
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+          {focus ? (
+            <>
+              <span className="text-2xl font-bold tabular-nums" style={{ color: focus.color }}>{focus.value}</span>
+              <span className="max-w-[80%] truncate text-xs text-muted-foreground">{focus.label} · {total ? Math.round((focus.value / total) * 100) : 0}%</span>
+            </>
+          ) : (
+            <>
+              <span className="text-2xl font-bold tabular-nums">{total}</span>
+              {unit && <span className="text-xs text-muted-foreground">{unit}</span>}
+            </>
+          )}
         </div>
       </div>
-      <ul className="flex-1 space-y-2">
-        {data.filter((d) => d.value > 0).map((d) => (
-          <li key={d.label} className="flex items-center gap-2.5 text-sm">
+      <ul className="flex-1 space-y-1">
+        {segs.map((d, i) => (
+          <li
+            key={d.label}
+            onPointerEnter={() => setActive(i)}
+            onPointerLeave={() => setActive(null)}
+            className={cn("flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm transition-colors", active === i ? "bg-secondary" : "")}
+          >
             <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: d.color }} />
             <span className="flex-1 truncate text-muted-foreground">{d.label}</span>
             <span className="font-semibold tabular-nums">{d.value}</span>
