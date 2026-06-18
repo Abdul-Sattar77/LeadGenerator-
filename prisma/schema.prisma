@@ -364,6 +364,7 @@ model Contact {
   notes           Note[]
   emails          EmailMessage[]
   tagLinks        TagLink[]
+  sequenceEnrollments SequenceEnrollment[]
 
   @@index([organizationId])
   @@index([companyId])
@@ -448,4 +449,53 @@ model TagLink {
   @@index([tagId])
   @@index([companyId])
   @@index([contactId])
+}
+
+// ─────────────────── Email sequences (cadences) ───────────────────
+model Sequence {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  status         String   @default("ACTIVE") // ACTIVE | PAUSED
+  createdById    String?
+  createdAt      DateTime @default(now())
+
+  steps       SequenceStep[]
+  enrollments SequenceEnrollment[]
+
+  @@index([organizationId])
+}
+
+model SequenceStep {
+  id         String   @id @default(cuid())
+  sequenceId String
+  order      Int      @default(0)
+  dayOffset  Int      @default(0) // days after enrollment to send this step
+  subject    String
+  body       String
+  createdAt  DateTime @default(now())
+
+  sequence Sequence @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+
+  @@index([sequenceId])
+}
+
+model SequenceEnrollment {
+  id             String    @id @default(cuid())
+  organizationId String
+  sequenceId     String
+  contactId      String
+  enrolledById   String?
+  status         String    @default("ACTIVE") // ACTIVE | COMPLETED | STOPPED
+  currentStep    Int       @default(0) // index of the next step to send
+  nextRunAt      DateTime?
+  enrolledAt     DateTime  @default(now())
+  stoppedReason  String?
+
+  sequence Sequence @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+  contact  Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([sequenceId, contactId])
+  @@index([organizationId, status])
+  @@index([nextRunAt])
 }

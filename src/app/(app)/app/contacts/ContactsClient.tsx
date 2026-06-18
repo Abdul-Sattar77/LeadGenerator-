@@ -52,6 +52,7 @@ export default function ContactsClient() {
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const { data: tags = [] } = useQuery({ queryKey: ["tags"], queryFn: () => api<Tag[]>("/api/app/tags") });
+  const { data: sequences = [] } = useQuery({ queryKey: ["sequences"], queryFn: () => api<{ id: string; name: string }[]>("/api/app/sequences") });
   const { data: views = [] } = useQuery({
     queryKey: ["views", "contacts"],
     queryFn: async () => (await fetch("/api/app/views?entity=contacts").then((r) => r.json())).views as View[],
@@ -76,6 +77,12 @@ export default function ContactsClient() {
       api("/api/app/contacts/bulk", { method: "POST", body: JSON.stringify(body) }),
     onSuccess: (r: any) => { clearSel(); invalidate(); toast.success(`Updated ${r.affected} contact(s)`); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Bulk action failed"),
+  });
+
+  const enroll = useMutation({
+    mutationFn: (seqId: string) => api(`/api/app/sequences/${seqId}/enroll`, { method: "POST", body: JSON.stringify({ contactIds: [...selected] }) }),
+    onSuccess: (r: any) => { clearSel(); toast.success(`Enrolled ${r.enrolled} contact(s) into the sequence`); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't enroll"),
   });
 
   async function saveView() {
@@ -152,6 +159,12 @@ export default function ContactsClient() {
             <option value="" disabled>Set stage…</option>
             {LIFECYCLES.map((s) => <option key={s} value={s}>{LIFECYCLE_META[s].label}</option>)}
           </select>
+          {sequences.length > 0 && (
+            <select onChange={(e) => { if (e.target.value) { enroll.mutate(e.target.value); e.target.value = ""; } }} defaultValue="" className="h-8 rounded-lg border border-input bg-card px-2 text-sm">
+              <option value="" disabled>Add to sequence…</option>
+              {sequences.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          )}
           <Button variant="outline" size="sm" className="text-rose-600" onClick={() => { if (confirm(`Delete ${selected.size} contact(s)?`)) bulk.mutate({ ids: [...selected], action: "delete" }); }}>
             <Trash2 className="h-4 w-4" /> Delete
           </Button>
