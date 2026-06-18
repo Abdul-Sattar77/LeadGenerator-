@@ -7,7 +7,7 @@ import { Building2, Contact2, Handshake, TrendingUp, Trophy, Percent } from "luc
 import { Card } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import { CountUp } from "@/components/app/CountUp";
-import { StageBars, LineChart } from "@/components/app/charts";
+import { DonutChart, LineChart } from "@/components/app/charts";
 import { fadeUp, stagger } from "@/lib/motion";
 
 interface Summary {
@@ -40,6 +40,8 @@ export function CrmSummary() {
     { label: "Win rate", value: data.winRate, icon: Percent, href: "/app/deals", fmt: (n: number) => `${Math.round(n)}%` },
   ];
 
+  const totalDeals = data.stages.reduce((s, st) => s + st.count, 0);
+
   return (
     <div className="space-y-5">
       <motion.div variants={stagger(0.05)} initial="hidden" animate="show" className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
@@ -66,25 +68,32 @@ export function CrmSummary() {
       </motion.div>
 
       <div className="grid gap-5 lg:grid-cols-5">
-        <Card className="p-6 lg:col-span-3">
-          <h2 className="mb-1 text-sm font-semibold">Growth — last 6 months</h2>
-          <p className="mb-3 text-xs text-muted-foreground">New records added each month</p>
-          <LineChart
-            data={data.timeseries}
-            series={[
-              { key: "companies", name: "Companies", color: "#6366f1" },
-              { key: "contacts", name: "Contacts", color: "#0ea5e9" },
-              { key: "deals", name: "Deals", color: "#10b981" },
+        {/* Records breakdown — donut */}
+        <Card className="p-6 lg:col-span-2">
+          <h2 className="mb-4 text-sm font-semibold">Records</h2>
+          <DonutChart
+            unit="records"
+            data={[
+              { label: "Companies", value: data.companies, color: "#6366f1" },
+              { label: "Contacts", value: data.contacts, color: "#0ea5e9" },
+              { label: "Deals", value: totalDeals, color: "#10b981" },
             ]}
           />
         </Card>
 
-        {data.stages.length > 0 && (
-          <Card className="p-6 lg:col-span-2">
-            <h2 className="mb-4 text-sm font-semibold">Pipeline by stage</h2>
-            <StageBars data={data.stages} money />
-          </Card>
-        )}
+        {/* Pipeline by stage — interactive line across stages */}
+        <Card className="p-6 lg:col-span-3">
+          <h2 className="mb-1 text-sm font-semibold">Pipeline by stage</h2>
+          <p className="mb-3 text-xs text-muted-foreground">Deals at each stage — drag along the line to read values</p>
+          {data.stages.length > 0 ? (
+            <LineChart
+              data={data.stages.map((s) => ({ label: s.name, deals: s.count }))}
+              series={[{ key: "deals", name: "Deals", color: "#6366f1" }]}
+            />
+          ) : (
+            <p className="py-8 text-center text-sm text-muted-foreground">No pipeline data yet.</p>
+          )}
+        </Card>
       </div>
     </div>
   );
