@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ActivityTimeline } from "@/components/app/ActivityTimeline";
 import { RecordTasks } from "@/components/app/RecordTasks";
+import { LogActivity } from "@/components/app/LogActivity";
 import { qk } from "@/lib/queryKeys";
 import { fadeUp } from "@/lib/motion";
 import { useCompany, useAddCompanyNote } from "@/hooks/useCompanies";
@@ -79,7 +80,8 @@ export default function CompanyDetail({ id }: { id: string }) {
 
         <TabsContent value="activity">
           <Card className="p-6">
-            <NoteComposer id={id} />
+            <LogActivity apiBase={`/api/app/companies/${id}`} recordQueryKey={qk.company(id)} />
+            <div className="mt-4"><NoteComposer id={id} /></div>
             <div className="mt-6">
               <ActivityTimeline items={company.timeline} />
             </div>

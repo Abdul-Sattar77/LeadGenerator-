@@ -59,6 +59,37 @@ export async function addNote(ctx: TenantContext, target: RecordTarget, body: st
   return note;
 }
 
+/** Log a typed activity (call/meeting/email) with outcome + optional follow-up task. */
+export async function logRecordActivity(
+  ctx: TenantContext,
+  target: RecordTarget,
+  input: { type: string; outcome?: string; note?: string; followUpInDays?: number; followUpTitle?: string }
+) {
+  await logActivity(ctx, input.type, target, {
+    ...(input.outcome ? { outcome: input.outcome } : {}),
+    ...(input.note ? { note: input.note } : {}),
+  });
+
+  if (input.followUpInDays != null) {
+    const due = new Date();
+    due.setDate(due.getDate() + input.followUpInDays);
+    due.setHours(9, 0, 0, 0);
+    await prisma.task.create({
+      data: {
+        organizationId: ctx.organizationId,
+        title: input.followUpTitle || `Follow up: ${input.type.toLowerCase()}`,
+        type: input.type === "EMAIL" ? "EMAIL" : input.type === "MEETING" ? "MEETING" : "CALL",
+        dueDate: due,
+        assignedUserId: ctx.userId,
+        createdById: ctx.userId,
+        companyId: target.companyId ?? null,
+        contactId: target.contactId ?? null,
+        dealId: target.dealId ?? null,
+      },
+    });
+  }
+}
+
 /** Build a unified, newest-first timeline (activities + notes) for a record. */
 export async function getTimeline(ctx: TenantContext, target: RecordTarget): Promise<TimelineItem[]> {
   const where = {

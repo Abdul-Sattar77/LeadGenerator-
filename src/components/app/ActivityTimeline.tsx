@@ -72,7 +72,11 @@ export function ActivityTimeline({ items }: { items: TimelineItem[] }) {
                 {item.userName && <span className="text-xs text-muted-foreground">by {item.userName}</span>}
                 <LocalTime iso={item.createdAt} className="ml-auto text-xs text-muted-foreground" />
               </div>
+              {item.metadata?.outcome != null && (
+                <span className="mt-1 inline-block rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground">{String(item.metadata.outcome)}</span>
+              )}
               {item.body && <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">{item.body}</p>}
+              {item.metadata?.note != null && <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">{String(item.metadata.note)}</p>}
               {Boolean(item.metadata?.from && item.metadata?.to) && (
                 <p className="mt-1 text-sm text-muted-foreground">
                   {String(item.metadata?.from)} → <span className="font-medium text-foreground">{String(item.metadata?.to)}</span>
