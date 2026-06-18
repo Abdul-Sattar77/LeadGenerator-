@@ -36,7 +36,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <UserMenu name={ctx.name} role={ctx.role} />
           </div>
         </header>
-        <main className="min-w-0 flex-1 p-6 lg:p-8">
+        <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
           <PageTransition>{children}</PageTransition>
         </main>
         <CommandPalette />
