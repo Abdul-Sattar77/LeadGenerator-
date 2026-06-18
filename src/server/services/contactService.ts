@@ -147,3 +147,97 @@ export async function deleteContact(ctx: TenantContext, id: string) {
   if (!existing) throw new Error("Contact not found.");
   await prisma.contact.delete({ where: { id } });
 }
+
+// ── Bulk actions ─────────────────────────────────────────────────────────
+export async function bulkContacts(
+  ctx: TenantContext,
+  ids: string[],
+  action: "delete" | "assignOwner" | "addTag" | "setLifecycle",
+  value?: string
+) {
+  const scope = { id: { in: ids }, organizationId: ctx.organizationId };
+
+  if (action === "delete") {
+    const res = await prisma.contact.deleteMany({ where: scope });
+    return { affected: res.count };
+  }
+  if (action === "assignOwner") {
+    if (value && !(await isOrgMember(ctx, value))) throw new Error("Owner must be in your organization.");
+    const res = await prisma.contact.updateMany({ where: scope, data: { ownerId: value || null } });
+    return { affected: res.count };
+  }
+  if (action === "setLifecycle") {
+    if (!value) throw new Error("Lifecycle stage required.");
+    const res = await prisma.contact.updateMany({ where: scope, data: { lifecycleStage: value } });
+    return { affected: res.count };
+  }
+  if (action === "addTag") {
+    if (!value) throw new Error("Tag required.");
+    const tag = await prisma.tag.findFirst({ where: { id: value, organizationId: ctx.organizationId }, select: { id: true } });
+    if (!tag) throw new Error("Tag not found.");
+    const targets = await prisma.contact.findMany({ where: scope, select: { id: true } });
+    let added = 0;
+    for (const t of targets) {
+      const exists = await prisma.tagLink.findFirst({ where: { tagId: value, contactId: t.id }, select: { id: true } });
+      if (!exists) { await prisma.tagLink.create({ data: { tagId: value, contactId: t.id } }); added++; }
+    }
+    return { affected: added };
+  }
+  throw new Error("Unknown action.");
+}
+
+// ── CSV import ─────────────────────────────────────────────────────────────
+export interface ImportRow {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  title?: string;
+  companyName?: string;
+}
+
+export async function importContacts(ctx: TenantContext, rows: ImportRow[]) {
+  let created = 0;
+  let skipped = 0;
+  const companyCache = new Map<string, string>(); // name(lower) -> id
+
+  for (const r of rows) {
+    const firstName = (r.firstName || "").trim();
+    const email = (r.email || "").trim().toLowerCase();
+    if (!firstName && !email) { skipped++; continue; }
+
+    if (email) {
+      const dupe = await prisma.contact.findFirst({ where: { organizationId: ctx.organizationId, email }, select: { id: true } });
+      if (dupe) { skipped++; continue; }
+    }
+
+    let companyId: string | undefined;
+    const companyName = (r.companyName || "").trim();
+    if (companyName) {
+      const key = companyName.toLowerCase();
+      companyId = companyCache.get(key);
+      if (!companyId) {
+        const found = await prisma.company.findFirst({ where: { organizationId: ctx.organizationId, name: companyName }, select: { id: true } });
+        const co = found ?? (await prisma.company.create({ data: { organizationId: ctx.organizationId, name: companyName, source: "IMPORT", ownerId: ctx.userId } }));
+        companyId = co.id;
+        companyCache.set(key, companyId);
+      }
+    }
+
+    await prisma.contact.create({
+      data: {
+        organizationId: ctx.organizationId,
+        firstName: firstName || email.split("@")[0],
+        lastName: (r.lastName || "").trim(),
+        email: email || null,
+        phone: (r.phone || "").trim() || null,
+        title: (r.title || "").trim() || null,
+        companyId,
+        ownerId: ctx.userId,
+        source: "IMPORT",
+      },
+    });
+    created++;
+  }
+  return { created, skipped };
+}

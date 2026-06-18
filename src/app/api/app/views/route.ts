@@ -5,15 +5,23 @@ import { listViews, createView } from "@/server/services/savedViewService";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  return NextResponse.json({ views: await listViews(ctx) });
+  const entity = new URL(request.url).searchParams.get("entity") || undefined;
+  return NextResponse.json({ views: await listViews(ctx, entity) });
 }
 
 const schema = z.object({
   name: z.string().trim().min(1, "Name is required.").max(40),
-  filters: z.object({ status: z.string().optional(), q: z.string().optional() }).default({}),
+  filters: z
+    .object({
+      entity: z.string().optional(),
+      q: z.string().optional(),
+      tagId: z.string().optional(),
+      lifecycleStage: z.string().optional(),
+    })
+    .default({}),
 });
 
 export async function POST(request: Request) {

@@ -26,6 +26,7 @@ interface ContactListParams {
   page?: number;
   companyId?: string;
   lifecycleStage?: string;
+  tagId?: string;
 }
 
 export function useContacts(params: ContactListParams) {
