@@ -183,12 +183,13 @@ export default function ContactsClient() {
         </motion.div>
       )}
 
-      <Card className="overflow-visible">
+      <Card className="overflow-hidden">
         {isLoading ? (
           <div className="flex items-center justify-center py-16 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" /></div>
         ) : contacts.length === 0 ? (
           <EmptyState icon={Contact2} title={filtersActive ? "No contacts match" : "No contacts yet"} description={filtersActive ? "Try different filters." : "Add the people behind your accounts."} action={!filtersActive && <Button onClick={() => setShowNew(true)}><Plus className="h-4 w-4" /> New contact</Button>} />
         ) : (
+          <div className="max-h-[calc(100vh-15rem)] overflow-y-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -231,6 +232,7 @@ export default function ContactsClient() {
               })}
             </motion.tbody>
           </Table>
+          </div>
         )}
       </Card>
 

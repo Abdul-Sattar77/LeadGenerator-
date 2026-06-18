@@ -12,10 +12,10 @@ export function Table({ className, ...props }: React.HTMLAttributes<HTMLTableEle
   );
 }
 export function TableHeader({ className, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) {
-  // Sticky just under the 4rem top bar so column labels stay while scrolling.
+  // Sticky to the top of the scroll area so column labels stay while scrolling.
   return (
     <thead
-      className={cn("sticky top-16 z-20 bg-card [&_tr]:border-b [&_tr]:border-border", className)}
+      className={cn("sticky top-0 z-20 bg-card [&_tr]:border-b [&_tr]:border-border", className)}
       {...props}
     />
   );

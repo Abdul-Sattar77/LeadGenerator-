@@ -63,7 +63,7 @@ export default function CompaniesClient() {
         <span className="text-sm text-muted-foreground">{total} total</span>
       </div>
 
-      <Card className="overflow-visible">
+      <Card className="overflow-hidden">
         {isLoading ? (
           <div className="flex items-center justify-center py-16 text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" />
@@ -76,6 +76,7 @@ export default function CompaniesClient() {
             action={!q && <Button onClick={() => setShowNew(true)}><Plus className="h-4 w-4" /> New company</Button>}
           />
         ) : (
+          <div className="max-h-[calc(100vh-15rem)] overflow-y-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -121,6 +122,7 @@ export default function CompaniesClient() {
               ))}
             </motion.tbody>
           </Table>
+          </div>
         )}
       </Card>
 
