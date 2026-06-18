@@ -6,6 +6,9 @@ import Forbidden from "@/app/(app)/_components/Forbidden";
 import { Card } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
 import { KpiRow } from "../DashboardCharts";
+import { StageBars, DonutChart } from "@/components/app/charts";
+
+const SOURCE_COLORS = ["#6366f1", "#0ea5e9", "#10b981", "#f59e0b", "#ec4899", "#a855f7"];
 
 export const dynamic = "force-dynamic";
 
@@ -29,8 +32,6 @@ export default async function ReportsPage() {
     { label: "Avg deal", value: fmtMoney(sales.avgDeal), icon: "trending" as const, tone: "amber" as const },
   ];
 
-  const maxSource = Math.max(1, ...lead.bySource.map((s) => s.count));
-  const maxStage = Math.max(1, ...lead.byStatus.map((s) => s.count));
 
   return (
     <div className="mx-auto max-w-6xl space-y-7">
@@ -55,35 +56,36 @@ export default async function ReportsPage() {
         {/* Deals by stage */}
         <Card className="p-6">
           <h2 className="mb-5 font-semibold">Deals by stage</h2>
-          <div className="space-y-2.5">
-            {lead.byStatus.map((s) => (
-              <div key={s.status} className="flex items-center gap-3">
-                <span className="w-28 shrink-0 truncate text-xs font-medium text-muted-foreground">{s.status}</span>
-                <div className="h-5 flex-1 overflow-hidden rounded-md bg-secondary/50">
-                  <div className="h-full rounded-md bg-gradient-to-r from-indigo-400 to-violet-400" style={{ width: `${(s.count / maxStage) * 100}%` }} />
-                </div>
-                <span className="w-6 text-right text-xs font-bold">{s.count}</span>
-              </div>
-            ))}
-            {lead.byStatus.length === 0 && <p className="text-sm text-muted-foreground">No deals yet.</p>}
-          </div>
+          {lead.byStatus.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No deals yet.</p>
+          ) : (
+            <StageBars
+              showValue={false}
+              data={lead.byStatus.map((s) => ({
+                id: s.status,
+                name: s.status,
+                count: s.count,
+                kind: /won/i.test(s.status) ? "WON" : /lost/i.test(s.status) ? "LOST" : "OPEN",
+              }))}
+            />
+          )}
         </Card>
 
         {/* Sources */}
         <Card className="p-6">
           <h2 className="mb-5 font-semibold">Company sources</h2>
-          <div className="space-y-2.5">
-            {lead.bySource.map((s) => (
-              <div key={s.source} className="flex items-center gap-3">
-                <span className="w-28 shrink-0 text-xs font-medium text-muted-foreground">{SOURCE_LABEL[s.source] ?? s.source}</span>
-                <div className="h-5 flex-1 overflow-hidden rounded-md bg-secondary/50">
-                  <div className="h-full rounded-md bg-gradient-to-r from-indigo-400 to-violet-400" style={{ width: `${(s.count / maxSource) * 100}%` }} />
-                </div>
-                <span className="w-6 text-right text-xs font-bold">{s.count}</span>
-              </div>
-            ))}
-            {lead.bySource.length === 0 && <p className="text-sm text-muted-foreground">No companies yet.</p>}
-          </div>
+          {lead.bySource.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No companies yet.</p>
+          ) : (
+            <DonutChart
+              unit="companies"
+              data={lead.bySource.map((s, i) => ({
+                label: SOURCE_LABEL[s.source] ?? s.source,
+                value: s.count,
+                color: SOURCE_COLORS[i % SOURCE_COLORS.length],
+              }))}
+            />
+          )}
         </Card>
       </div>
 

@@ -7,7 +7,8 @@ import { Building2, Contact2, Handshake, TrendingUp, Trophy, Percent } from "luc
 import { Card } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import { CountUp } from "@/components/app/CountUp";
-import { EASE, fadeUp, stagger } from "@/lib/motion";
+import { StageBars } from "@/components/app/charts";
+import { fadeUp, stagger } from "@/lib/motion";
 
 interface Summary {
   companies: number;
@@ -21,12 +22,6 @@ interface Summary {
 
 const money = (n: number) =>
   n >= 1000 ? `$${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k` : `$${Math.round(n)}`;
-
-function accent(kind: string) {
-  if (kind === "WON") return "bg-emerald-500";
-  if (kind === "LOST") return "bg-rose-500";
-  return "bg-indigo-500";
-}
 
 export function CrmSummary() {
   const { data, isLoading } = useQuery({ queryKey: ["dashboard-v2"], queryFn: () => api<Summary>("/api/app/dashboard") });
@@ -43,8 +38,6 @@ export function CrmSummary() {
     { label: "Won revenue", value: data.wonValue, icon: Trophy, href: "/app/deals", fmt: money },
     { label: "Win rate", value: data.winRate, icon: Percent, href: "/app/deals", fmt: (n: number) => `${Math.round(n)}%` },
   ];
-
-  const maxStage = Math.max(1, ...data.stages.map((s) => s.count));
 
   return (
     <div className="space-y-5">
@@ -74,24 +67,7 @@ export function CrmSummary() {
       {data.stages.length > 0 && (
         <Card className="p-6">
           <h2 className="mb-4 text-sm font-semibold">Pipeline by stage</h2>
-          <div className="space-y-3">
-            {data.stages.map((s, i) => (
-              <div key={s.id} className="flex items-center gap-3">
-                <span className="w-28 shrink-0 truncate text-xs font-medium text-muted-foreground">{s.name}</span>
-                <div className="h-6 flex-1 overflow-hidden rounded-md bg-secondary/60">
-                  <motion.div
-                    className={`flex h-full items-center justify-end rounded-md px-2 ${accent(s.kind)}`}
-                    initial={{ width: 0 }}
-                    animate={{ width: `${Math.max((s.count / maxStage) * 100, s.count ? 8 : 0)}%` }}
-                    transition={{ duration: 0.7, ease: EASE, delay: i * 0.06 }}
-                  >
-                    {s.count > 0 && <span className="text-[11px] font-semibold text-white">{s.count}</span>}
-                  </motion.div>
-                </div>
-                <span className="w-16 shrink-0 text-right text-xs font-medium tabular-nums text-muted-foreground">{money(s.value)}</span>
-              </div>
-            ))}
-          </div>
+          <StageBars data={data.stages} money />
         </Card>
       )}
     </div>
