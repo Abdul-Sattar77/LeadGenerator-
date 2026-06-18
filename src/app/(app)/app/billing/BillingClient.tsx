@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { Check, Loader2, CreditCard, Gauge, Users, Sparkles } from "lucide-react";
@@ -21,10 +21,41 @@ type Billing = {
   seatLimit: number;
 };
 
+// Static USD→local conversion (no paid FX API). Prices are indicative.
+const CURRENCIES: Record<string, { symbol: string; rate: number; label: string }> = {
+  USD: { symbol: "$", rate: 1, label: "USD" },
+  PKR: { symbol: "₨", rate: 280, label: "PKR" },
+  INR: { symbol: "₹", rate: 83, label: "INR" },
+  AED: { symbol: "AED ", rate: 3.67, label: "AED" },
+  SAR: { symbol: "SAR ", rate: 3.75, label: "SAR" },
+  GBP: { symbol: "£", rate: 0.79, label: "GBP" },
+  EUR: { symbol: "€", rate: 0.92, label: "EUR" },
+  BDT: { symbol: "৳", rate: 117, label: "BDT" },
+  NGN: { symbol: "₦", rate: 1600, label: "NGN" },
+};
+// Map a locale/region to a default currency.
+const REGION_CCY: Record<string, string> = {
+  PK: "PKR", IN: "INR", AE: "AED", SA: "SAR", GB: "GBP", BD: "BDT", NG: "NGN",
+  DE: "EUR", FR: "EUR", ES: "EUR", IT: "EUR", NL: "EUR", IE: "EUR",
+};
+
 export default function BillingClient({ billing, upgraded }: { billing: Billing; upgraded: string | null }) {
   const router = useRouter();
   const qc = useQueryClient();
   const [switching, setSwitching] = useState<PlanTier | null>(null);
+  const [ccy, setCcy] = useState("USD");
+
+  // Guess currency from the visitor's locale (remembered after first manual change).
+  useEffect(() => {
+    const saved = localStorage.getItem("lf_ccy");
+    if (saved && CURRENCIES[saved]) { setCcy(saved); return; }
+    const region = (navigator.language.split("-")[1] || "").toUpperCase();
+    if (REGION_CCY[region]) setCcy(REGION_CCY[region]);
+  }, []);
+  function changeCcy(v: string) { setCcy(v); localStorage.setItem("lf_ccy", v); }
+
+  const cur = CURRENCIES[ccy];
+  const price = (usd: number) => (usd === 0 ? `${cur.symbol}0` : `${cur.symbol}${Math.round(usd * cur.rate).toLocaleString()}`);
 
   async function switchPlan(plan: PlanTier) {
     if (plan === billing.plan) return;
@@ -83,10 +114,18 @@ export default function BillingClient({ billing, upgraded }: { billing: Billing;
       </Card>
 
       {/* Plans */}
-      <div className="mb-4 flex items-center gap-2">
+      <div className="mb-4 flex flex-wrap items-center gap-2">
         <CreditCard className="h-4 w-4 text-muted-foreground" />
         <h2 className="font-semibold">Plans</h2>
-        <span className="ml-auto rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold text-accent-foreground">Current: {PLANS[billing.plan].name}</span>
+        <select
+          value={ccy}
+          onChange={(e) => changeCcy(e.target.value)}
+          className="ml-auto h-8 rounded-lg border border-input bg-card px-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label="Currency"
+        >
+          {Object.entries(CURRENCIES).map(([code, c]) => <option key={code} value={code}>{c.label}</option>)}
+        </select>
+        <span className="rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold text-accent-foreground">Current: {PLANS[billing.plan].name}</span>
       </div>
       <div className="grid gap-4 lg:grid-cols-3">
         {PLAN_TIERS.map((tier) => {
@@ -98,7 +137,7 @@ export default function BillingClient({ billing, upgraded }: { billing: Billing;
               <h3 className="text-lg font-bold">{p.name}</h3>
               <p className="mt-1 text-sm text-muted-foreground">{p.blurb}</p>
               <div className="mt-4 flex items-end gap-1">
-                <span className="text-3xl font-extrabold tracking-tight">${p.price}</span>
+                <span className="text-3xl font-extrabold tracking-tight">{price(p.price)}</span>
                 <span className="mb-1 text-sm text-muted-foreground">/ mo</span>
               </div>
               <ul className="mt-4 flex-1 space-y-2 text-sm">
@@ -114,7 +153,10 @@ export default function BillingClient({ billing, upgraded }: { billing: Billing;
           );
         })}
       </div>
-      <p className="mt-3 text-center text-xs text-muted-foreground">Plan changes apply instantly in this demo. In production, paid plans go through Stripe Checkout.</p>
+      <p className="mt-3 text-center text-xs text-muted-foreground">
+        Prices shown in {cur.label} are indicative (converted from USD); you’re billed in USD via Stripe Checkout.
+        Plan changes apply instantly in this demo.
+      </p>
     </div>
   );
 }
