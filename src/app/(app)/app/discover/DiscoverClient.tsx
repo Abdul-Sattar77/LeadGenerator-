@@ -44,7 +44,20 @@ export default function DiscoverClient() {
   const [saved, setSaved] = useState<Record<string, "saving" | "saved">>({});
   const [savingAll, setSavingAll] = useState(false);
 
+  // Filters + dedupe (Apollo-style funnel).
+  const [minRating, setMinRating] = useState(0);
+  const [hasWebsiteOnly, setHasWebsiteOnly] = useState(false);
+  const [hideDupes, setHideDupes] = useState(false);
+  const [existing, setExisting] = useState<Set<string>>(new Set());
+
   const keyOf = (r: Result) => `${r.name}|${r.address ?? ""}`.toLowerCase();
+
+  const filtered = results.filter((r) => {
+    if (minRating && (r.rating ?? 0) < minRating) return false;
+    if (hasWebsiteOnly && !r.website) return false;
+    if (hideDupes && existing.has(keyOf(r))) return false;
+    return true;
+  });
 
   const runSearch = useCallback(async () => {
     const w = what.trim();
@@ -60,7 +73,18 @@ export default function DiscoverClient() {
       const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&max=${max}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Search failed");
-      setResults(data.results || []);
+      const rows: Result[] = data.results || [];
+      setResults(rows);
+      setExisting(new Set());
+      // Flag which results are already in the CRM (dedupe).
+      try {
+        const chk = await fetch("/api/app/discover/check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ items: rows.map((r) => ({ name: r.name, address: r.address })) }),
+        });
+        if (chk.ok) { const cd = await chk.json(); setExisting(new Set(cd.data?.existing ?? [])); }
+      } catch { /* non-fatal */ }
     } catch (e) {
       setError((e as Error).message);
       setResults([]);
@@ -105,7 +129,8 @@ export default function DiscoverClient() {
   async function saveAll() {
     setSavingAll(true);
     try {
-      for (const r of results) {
+      for (const r of filtered) {
+        if (existing.has(keyOf(r)) || saved[keyOf(r)]) continue; // skip dupes / already saved
         // eslint-disable-next-line no-await-in-loop
         await saveOne(r); // throws on error (e.g. plan limit) — stop the batch
       }
@@ -154,17 +179,37 @@ export default function DiscoverClient() {
         </form>
       </div>
 
-      {/* Results header */}
+      {/* Results header + filters */}
       {searched && !loading && !error && results.length > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-muted-foreground">
-            <span className="font-semibold text-foreground">{results.length}</span> results for “{query}”
-            {savedCount > 0 && <span className="ml-2 text-emerald-600">· {savedCount} saved</span>}
-          </p>
-          <Button variant="outline" onClick={saveAll} disabled={savingAll || savedCount === results.length}>
-            {savingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-            Save all to CRM
-          </Button>
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">
+              <span className="font-semibold text-foreground">{filtered.length}</span> of {results.length} for “{query}”
+              {existing.size > 0 && <span className="ml-2 text-amber-600">· {existing.size} already in CRM</span>}
+              {savedCount > 0 && <span className="ml-2 text-emerald-600">· {savedCount} saved</span>}
+            </p>
+            <Button variant="outline" onClick={saveAll} disabled={savingAll || filtered.length === 0}>
+              {savingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              Save {hideDupes || minRating || hasWebsiteOnly ? `${filtered.length} filtered` : "all"} to CRM
+            </Button>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card/60 px-3 py-2 text-sm">
+            <span className="text-xs font-medium text-muted-foreground">Filters:</span>
+            <label className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">Min rating</span>
+              <select value={minRating} onChange={(e) => setMinRating(Number(e.target.value))} className="h-8 rounded-lg border border-input bg-card px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <option value={0}>Any</option><option value={3}>3.0+</option><option value={4}>4.0+</option><option value={4.5}>4.5+</option>
+              </select>
+            </label>
+            <label className="flex items-center gap-1.5 rounded-lg border border-border px-2 py-1">
+              <input type="checkbox" checked={hasWebsiteOnly} onChange={(e) => setHasWebsiteOnly(e.target.checked)} className="h-3.5 w-3.5" />
+              <span className="text-muted-foreground">Has website</span>
+            </label>
+            <label className="flex items-center gap-1.5 rounded-lg border border-border px-2 py-1">
+              <input type="checkbox" checked={hideDupes} onChange={(e) => setHideDupes(e.target.checked)} className="h-3.5 w-3.5" />
+              <span className="text-muted-foreground">Hide already in CRM</span>
+            </label>
+          </div>
         </div>
       )}
 
@@ -207,8 +252,9 @@ export default function DiscoverClient() {
       {/* Results grid */}
       {!loading && !error && results.length > 0 && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {results.map((r, i) => {
+          {filtered.map((r, i) => {
             const k = keyOf(r);
+            const inCrm = existing.has(k);
             const state = saved[k];
             const { score } = scoreLead({ website: r.website, rating: r.rating, reviews: r.reviews, industry: r.category });
             return (
@@ -243,15 +289,17 @@ export default function DiscoverClient() {
 
                   <div className="mt-auto pt-4">
                     <Button
-                      variant={state === "saved" ? "outline" : "gradient"}
-                      className={cn("w-full", state === "saved" && "border-emerald-200 bg-emerald-50 text-emerald-700")}
+                      variant={state === "saved" || inCrm ? "outline" : "gradient"}
+                      className={cn("w-full", (state === "saved" || inCrm) && "border-emerald-200 bg-emerald-50 text-emerald-700")}
                       onClick={() => saveOne(r)}
-                      disabled={!!state}
+                      disabled={!!state || inCrm}
                     >
                       {state === "saving" ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : state === "saved" ? (
                         <><Check className="h-4 w-4" /> Saved to CRM</>
+                      ) : inCrm ? (
+                        <><Check className="h-4 w-4" /> Already in CRM</>
                       ) : (
                         <><Plus className="h-4 w-4" /> Save to CRM</>
                       )}

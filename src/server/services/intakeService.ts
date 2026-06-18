@@ -5,6 +5,17 @@ import { logActivity } from "@/server/services/recordService";
 import { PlanLimitError } from "@/lib/plans";
 import type { DiscoverSaveInput } from "@/lib/validations/intake";
 
+/** Return the set of "name|address" keys (lowercased) already in the org's CRM. */
+export async function findExistingKeys(ctx: TenantContext, items: { name: string; address?: string }[]): Promise<string[]> {
+  const names = [...new Set(items.map((i) => i.name).filter(Boolean))];
+  if (!names.length) return [];
+  const rows = await prisma.company.findMany({
+    where: { organizationId: ctx.organizationId, name: { in: names } },
+    select: { name: true, address: true },
+  });
+  return rows.map((r) => `${r.name}|${r.address ?? ""}`.toLowerCase());
+}
+
 /**
  * Save a business discovered on Google Maps into the relational CRM as a
  * Company. Idempotent per org by (name + address) so "Save to CRM" can be
