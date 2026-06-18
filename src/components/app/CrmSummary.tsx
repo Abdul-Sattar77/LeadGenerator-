@@ -50,9 +50,9 @@ export function CrmSummary() {
           return (
             <motion.div key={k.label} variants={fadeUp}>
               <Link href={k.href}>
-                <Card className="group p-4 transition-shadow hover:shadow-md">
+                <Card className="group p-4 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg hover:ring-1 hover:ring-primary/15">
                   <div className="flex items-center justify-between">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary transition-transform duration-200 group-hover:scale-110">
                       <Icon className="h-4.5 w-4.5" />
                     </span>
                   </div>
