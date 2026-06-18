@@ -230,11 +230,13 @@ export function DonutChart({ data, unit = "", size = 168 }: { data: DonutDatum[]
                   cx={cx} cy={cx} r={r} fill="none" stroke={s.color}
                   strokeLinecap="round"
                   strokeDasharray={`${s.dash} ${s.gap}`}
+                  strokeWidth={active === i ? stroke + 6 : stroke}
+                  opacity={dim ? 0.4 : 1}
+                  style={{ transition: "stroke-width 0.15s ease, opacity 0.15s ease" }}
                   initial={{ strokeDashoffset: c }}
                   whileInView={{ strokeDashoffset: -((s.rot / 360) * c) }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.9, ease: EASE, delay: i * 0.12 }}
-                  animate={{ strokeWidth: active === i ? stroke + 6 : stroke, opacity: dim ? 0.4 : 1 }}
                 />
                 {/* wide invisible hit-area for easy hovering */}
                 <circle
