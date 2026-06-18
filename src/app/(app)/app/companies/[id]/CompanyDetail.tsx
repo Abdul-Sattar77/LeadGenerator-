@@ -3,9 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  Building2, ArrowLeft, Globe, Phone, MapPin, Briefcase, Loader2, Users, Send, Plus,
+  Building2, ArrowLeft, Globe, Phone, MapPin, Briefcase, Loader2, Users, Send, Plus, Sparkles,
 } from "lucide-react";
+import { api } from "@/lib/api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -70,7 +72,10 @@ export default function CompanyDetail({ id }: { id: string }) {
               <TagEditor apiBase={`/api/app/companies/${id}`} tags={(company.tagLinks ?? []).map((tl: any) => tl.tag)} recordQueryKey={qk.company(id)} />
             </div>
           </div>
-          {company.owner && <Badge variant="muted">Owner · {company.owner.name}</Badge>}
+          <div className="flex flex-col items-end gap-2">
+            <EnrichButton id={id} hasWebsite={Boolean(company.website)} />
+            {company.owner && <Badge variant="muted">Owner · {company.owner.name}</Badge>}
+          </div>
         </div>
       </Card>
 
@@ -144,6 +149,36 @@ export default function CompanyDetail({ id }: { id: string }) {
         </TabsContent>
       </Tabs>
     </motion.div>
+  );
+}
+
+function EnrichButton({ id, hasWebsite }: { id: string; hasWebsite: boolean }) {
+  const qc = useQueryClient();
+  const enrich = useMutation({
+    mutationFn: () => api<{ emailsFound: number; contactsCreated: number }>(`/api/app/companies/${id}/enrich`, { method: "POST" }),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: qk.company(id) });
+      toast.success(
+        r.contactsCreated > 0
+          ? `Enriched: ${r.contactsCreated} contact${r.contactsCreated === 1 ? "" : "s"} added from ${r.emailsFound} email${r.emailsFound === 1 ? "" : "s"}.`
+          : r.emailsFound > 0
+            ? `Found ${r.emailsFound} email(s) — all already in your CRM.`
+            : "No public emails found on the website."
+      );
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Enrichment failed"),
+  });
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={() => enrich.mutate()}
+      disabled={enrich.isPending || !hasWebsite}
+      title={hasWebsite ? "Find emails, phones & socials from the website" : "Add a website to enable enrichment"}
+    >
+      {enrich.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Enrich
+    </Button>
   );
 }
 
