@@ -3,14 +3,22 @@ import { cn } from "@/lib/utils";
 
 // Dense, professional data table (CRM-style). Wrap in a bordered card + overflow.
 export function Table({ className, ...props }: React.HTMLAttributes<HTMLTableElement>) {
+  // Horizontal scroll on mobile; visible on md+ so the sticky header can pin
+  // to the viewport while the list scrolls.
   return (
-    <div className="w-full overflow-x-auto">
+    <div className="w-full overflow-x-auto md:overflow-visible">
       <table className={cn("w-full caption-bottom text-sm", className)} {...props} />
     </div>
   );
 }
 export function TableHeader({ className, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) {
-  return <thead className={cn("[&_tr]:border-b [&_tr]:border-border", className)} {...props} />;
+  // Sticky just under the 4rem top bar so column labels stay while scrolling.
+  return (
+    <thead
+      className={cn("sticky top-16 z-20 bg-card [&_tr]:border-b [&_tr]:border-border", className)}
+      {...props}
+    />
+  );
 }
 export function TableBody({ className, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) {
   return <tbody className={cn("divide-y divide-border", className)} {...props} />;

@@ -63,7 +63,7 @@ export default function CompaniesClient() {
         <span className="text-sm text-muted-foreground">{total} total</span>
       </div>
 
-      <Card className="overflow-hidden">
+      <Card className="overflow-visible">
         {isLoading ? (
           <div className="flex items-center justify-center py-16 text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" />
