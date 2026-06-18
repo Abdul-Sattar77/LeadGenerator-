@@ -9,7 +9,7 @@ import {
 } from "@dnd-kit/core";
 import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 import {
-  Search, Plus, Loader2, Inbox, Building2, TrendingUp, Trophy, DollarSign, Percent, Layers,
+  Search, Plus, Loader2, Inbox, Building2, TrendingUp, Trophy, DollarSign, Percent, Layers, AlertTriangle, Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -103,10 +103,10 @@ export default function DealsBoard() {
   const statCards = [
     { label: "Open deals", value: s.openCount, icon: <Layers className="h-5 w-5" />, tone: "indigo" as const },
     { label: "Pipeline value", value: fmtMoney(s.openValue), icon: <TrendingUp className="h-5 w-5" />, tone: "sky" as const },
-    { label: "Won", value: s.wonCount, icon: <Trophy className="h-5 w-5" />, tone: "emerald" as const },
+    { label: "Weighted forecast", value: fmtMoney(s.weightedPipeline), icon: <Percent className="h-5 w-5" />, tone: "violet" as const },
     { label: "Won revenue", value: fmtMoney(s.wonValue), icon: <DollarSign className="h-5 w-5" />, tone: "emerald" as const },
-    { label: "Win rate", value: `${s.winRate}%`, icon: <Percent className="h-5 w-5" />, tone: "violet" as const },
-    { label: "Avg deal", value: fmtMoney(s.avgWonValue), icon: <DollarSign className="h-5 w-5" />, tone: "amber" as const },
+    { label: "Win rate", value: `${s.winRate}%`, icon: <Trophy className="h-5 w-5" />, tone: "emerald" as const },
+    { label: "Rotting", value: s.rottingCount, icon: <AlertTriangle className="h-5 w-5" />, tone: "amber" as const },
   ];
 
   return (
@@ -148,6 +148,7 @@ export default function DealsBoard() {
 function Column({ stage, deals, maxCount }: { stage: Stage; deals: TDeal[]; maxCount: number }) {
   const { setNodeRef, isOver } = useDroppable({ id: stage.id });
   const value = deals.reduce((sum, d) => sum + d.value, 0);
+  const weighted = Math.round(value * (stage.probability / 100));
   const share = Math.round((deals.length / maxCount) * 100);
 
   return (
@@ -159,7 +160,12 @@ function Column({ stage, deals, maxCount }: { stage: Stage; deals: TDeal[]; maxC
             {stage.name}
             <span className="rounded-full bg-secondary px-1.5 text-xs font-semibold text-muted-foreground">{deals.length}</span>
           </span>
-          {value > 0 && <span className="text-xs font-semibold text-muted-foreground">{fmtMoney(value)}</span>}
+          {value > 0 && (
+            <span className="text-right text-xs font-semibold text-muted-foreground">
+              {fmtMoney(value)}
+              {stage.kind === "OPEN" && weighted > 0 && <span className="ml-1 font-normal text-muted-foreground/70">· ~{fmtMoney(weighted)}</span>}
+            </span>
+          )}
         </div>
         <div className="mt-2 h-1 overflow-hidden rounded-full bg-black/5">
           <motion.div
@@ -213,10 +219,19 @@ function DealCardView({ deal, overlay }: { deal: TDeal; overlay?: boolean }) {
       onClick={(e) => overlay && e.preventDefault()}
       className={cn(
         "block cursor-grab rounded-xl border bg-card p-3 shadow-sm transition-shadow active:cursor-grabbing",
-        overlay ? "rotate-2 border-primary/30 shadow-xl ring-2 ring-primary/20" : "border-border hover:shadow-md"
+        overlay ? "rotate-2 border-primary/30 shadow-xl ring-2 ring-primary/20" : "border-border hover:shadow-md",
+        deal.rotting && !overlay && "border-l-2 border-l-amber-400"
       )}
+      title={deal.rotting ? `No activity for ${deal.idleDays} days` : undefined}
     >
-      <div className="truncate text-sm font-semibold leading-tight text-foreground">{deal.name}</div>
+      <div className="flex items-start justify-between gap-2">
+        <div className="truncate text-sm font-semibold leading-tight text-foreground">{deal.name}</div>
+        {deal.rotting && (
+          <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
+            <Clock className="h-3 w-3" />{deal.idleDays}d
+          </span>
+        )}
+      </div>
       {deal.company && (
         <div className="mt-1 flex items-center gap-1 truncate text-xs text-muted-foreground">
           <Building2 className="h-3 w-3" /> {deal.company.name}

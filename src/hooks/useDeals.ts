@@ -21,13 +21,15 @@ export interface DealCard {
   company: { id: string; name: string } | null;
   primaryContact: { id: string; name: string } | null;
   owner: { id: string; name: string } | null;
+  idleDays: number;
+  rotting: boolean;
 }
 export interface Board {
   pipeline: { id: string; name: string; stages: Stage[] };
   deals: DealCard[];
   stats: {
-    total: number; openCount: number; openValue: number;
-    wonCount: number; wonValue: number; winRate: number; avgWonValue: number;
+    total: number; openCount: number; openValue: number; weightedPipeline: number;
+    wonCount: number; wonValue: number; winRate: number; avgWonValue: number; rottingCount: number;
   };
 }
 

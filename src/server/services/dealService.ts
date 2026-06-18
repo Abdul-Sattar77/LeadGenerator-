@@ -35,24 +35,44 @@ export async function getBoard(ctx: TenantContext, pipelineId?: string) {
     },
   });
 
-  const rows = deals.map((d) => ({
-    id: d.id,
-    name: d.name,
-    value: num(d.value),
-    stageId: d.stageId,
-    status: d.status,
-    company: d.company,
-    primaryContact: d.primaryContact
-      ? { id: d.primaryContact.id, name: `${d.primaryContact.firstName} ${d.primaryContact.lastName}`.trim() }
-      : null,
-    owner: d.owner,
-  }));
+  // Last-activity per deal (for "rotting" indicator), one grouped query.
+  const ids = deals.map((d) => d.id);
+  const lastActivity = ids.length
+    ? await prisma.activity.groupBy({ by: ["dealId"], where: { dealId: { in: ids } }, _max: { createdAt: true } })
+    : [];
+  const lastMap = new Map(lastActivity.map((a) => [a.dealId, a._max.createdAt?.getTime() ?? 0]));
+
+  const probOf = new Map(pipeline.stages.map((s) => [s.id, s.probability]));
+  const ROT_DAYS = 14;
+  const now = Date.now();
+  const DAY = 86_400_000;
+
+  const rows = deals.map((d) => {
+    const last = lastMap.get(d.id) ?? d.createdAt.getTime();
+    const idleDays = Math.floor((now - last) / DAY);
+    return {
+      id: d.id,
+      name: d.name,
+      value: num(d.value),
+      stageId: d.stageId,
+      status: d.status,
+      company: d.company,
+      primaryContact: d.primaryContact
+        ? { id: d.primaryContact.id, name: `${d.primaryContact.firstName} ${d.primaryContact.lastName}`.trim() }
+        : null,
+      owner: d.owner,
+      idleDays,
+      rotting: d.status === "OPEN" && idleDays >= ROT_DAYS,
+    };
+  });
 
   const won = rows.filter((d) => d.status === "WON");
   const lost = rows.filter((d) => d.status === "LOST");
   const open = rows.filter((d) => d.status === "OPEN");
   const wonValue = won.reduce((s, d) => s + d.value, 0);
   const closed = won.length + lost.length;
+  // Weighted = Σ(open deal value × its stage probability).
+  const weightedPipeline = open.reduce((s, d) => s + d.value * ((probOf.get(d.stageId) ?? 0) / 100), 0);
 
   return {
     pipeline: {
@@ -65,10 +85,12 @@ export async function getBoard(ctx: TenantContext, pipelineId?: string) {
       total: rows.length,
       openCount: open.length,
       openValue: open.reduce((s, d) => s + d.value, 0),
+      weightedPipeline: Math.round(weightedPipeline),
       wonCount: won.length,
       wonValue,
       winRate: closed ? Math.round((won.length / closed) * 100) : 0,
       avgWonValue: won.length ? Math.round(wonValue / won.length) : 0,
+      rottingCount: open.filter((d) => d.rotting).length,
     },
   };
 }
