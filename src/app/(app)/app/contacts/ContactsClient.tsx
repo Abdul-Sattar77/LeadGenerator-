@@ -53,6 +53,10 @@ export default function ContactsClient() {
 
   const { data: tags = [] } = useQuery({ queryKey: ["tags"], queryFn: () => api<Tag[]>("/api/app/tags") });
   const { data: sequences = [] } = useQuery({ queryKey: ["sequences"], queryFn: () => api<{ id: string; name: string }[]>("/api/app/sequences") });
+  const { data: members = [] } = useQuery({
+    queryKey: ["team-members"],
+    queryFn: () => fetch("/api/app/team").then((r) => (r.ok ? r.json() : { members: [] })).then((d) => (d.members ?? []) as { id: string; name: string }[]),
+  });
   const { data: views = [] } = useQuery({
     queryKey: ["views", "contacts"],
     queryFn: async () => (await fetch("/api/app/views?entity=contacts").then((r) => r.json())).views as View[],
@@ -159,6 +163,13 @@ export default function ContactsClient() {
             <option value="" disabled>Set stage…</option>
             {LIFECYCLES.map((s) => <option key={s} value={s}>{LIFECYCLE_META[s].label}</option>)}
           </select>
+          {members.length > 0 && (
+            <select onChange={(e) => { bulk.mutate({ ids: [...selected], action: "assignOwner", value: e.target.value || undefined }); e.target.value = "__"; }} defaultValue="__" className="h-8 rounded-lg border border-input bg-card px-2 text-sm">
+              <option value="__" disabled>Assign owner…</option>
+              <option value="">Unassigned</option>
+              {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+            </select>
+          )}
           {sequences.length > 0 && (
             <select onChange={(e) => { if (e.target.value) { enroll.mutate(e.target.value); e.target.value = ""; } }} defaultValue="" className="h-8 rounded-lg border border-input bg-card px-2 text-sm">
               <option value="" disabled>Add to sequence…</option>
