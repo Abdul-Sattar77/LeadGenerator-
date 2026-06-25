@@ -9,13 +9,14 @@ import { Logo } from "@/components/Logo";
 import { CommandPalette } from "@/components/app/CommandPalette";
 import { CommandTrigger } from "@/components/app/CommandTrigger";
 import { PageTransition } from "@/components/app/PageTransition";
+import { VerifyBanner } from "@/components/app/VerifyBanner";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const ctx = await requireAuth();
-  const org = await prisma.organization.findUnique({
-    where: { id: ctx.organizationId },
-    include: { subscription: true },
-  });
+  const [org, user] = await Promise.all([
+    prisma.organization.findUnique({ where: { id: ctx.organizationId }, include: { subscription: true } }),
+    prisma.user.findUnique({ where: { id: ctx.userId }, select: { emailVerified: true } }),
+  ]);
 
   return (
     <div className="app-canvas flex min-h-screen">
@@ -36,6 +37,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <UserMenu name={ctx.name} role={ctx.role} />
           </div>
         </header>
+        {!user?.emailVerified && <VerifyBanner />}
         <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
           <PageTransition>{children}</PageTransition>
         </main>

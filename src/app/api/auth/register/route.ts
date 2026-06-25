@@ -2,19 +2,20 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/server/db";
 import { registerSchema } from "@/lib/validations/auth";
+import { requestVerification } from "@/server/services/verifyService";
 
 export const dynamic = "force-dynamic";
 
 // Default Kanban pipeline created for every new organization.
 const DEFAULT_STAGES = [
-  { name: "New", color: "#94a3b8" },
-  { name: "Contacted", color: "#3b82f6" },
-  { name: "Qualified", color: "#6366f1" },
-  { name: "Interested", color: "#f59e0b" },
-  { name: "Proposal", color: "#a855f7" },
-  { name: "Negotiation", color: "#ec4899" },
-  { name: "Won", color: "#10b981" },
-  { name: "Lost", color: "#ef4444" },
+  { name: "New", color: "#94a3b8", probability: 10, kind: "OPEN" },
+  { name: "Contacted", color: "#3b82f6", probability: 20, kind: "OPEN" },
+  { name: "Qualified", color: "#6366f1", probability: 35, kind: "OPEN" },
+  { name: "Interested", color: "#f59e0b", probability: 50, kind: "OPEN" },
+  { name: "Proposal", color: "#a855f7", probability: 65, kind: "OPEN" },
+  { name: "Negotiation", color: "#ec4899", probability: 80, kind: "OPEN" },
+  { name: "Won", color: "#10b981", probability: 100, kind: "WON" },
+  { name: "Lost", color: "#ef4444", probability: 0, kind: "LOST" },
 ];
 
 function slugify(name: string): string {
@@ -70,6 +71,8 @@ export async function POST(request: Request) {
                   name: s.name,
                   color: s.color,
                   order: i,
+                  probability: s.probability,
+                  kind: s.kind,
                 })),
               },
             },
@@ -87,6 +90,9 @@ export async function POST(request: Request) {
         },
       });
     });
+
+    // Send the verification email (non-blocking — never fail signup over it).
+    try { await requestVerification(email); } catch { /* swallow */ }
 
     return NextResponse.json({ ok: true }, { status: 201 });
   } catch (err) {
