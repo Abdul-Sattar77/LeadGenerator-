@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Loader2, Building2, Mail, Plus, Trash2, ListChecks } from "lucide-react";
+import { Check, Loader2, Building2, Mail, Plus, Trash2, ListChecks, Link2, Copy, ExternalLink } from "lucide-react";
 import { toast } from "@/stores/toastStore";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,11 +12,12 @@ type Billing = {
   monthlyGoal: number | null;
 };
 
-export default function SettingsClient({ billing, gmail, googleConfigured, gmailStatus }: {
+export default function SettingsClient({ billing, gmail, googleConfigured, gmailStatus, formUrl }: {
   billing: Billing;
   gmail: { email: string } | null;
   googleConfigured: boolean;
   gmailStatus: string | null;
+  formUrl: string;
 }) {
   const router = useRouter();
   const [name, setName] = useState(billing.orgName);
@@ -81,6 +82,20 @@ export default function SettingsClient({ billing, gmail, googleConfigured, gmail
             {nameSaved ? "Saved" : "Save"}
           </Button>
         </form>
+      </Card>
+
+      {/* Web-to-lead form */}
+      <Card className="p-6">
+        <div className="mb-1 flex items-center gap-2">
+          <Link2 className="h-4 w-4 text-muted-foreground" />
+          <h2 className="font-semibold">Web-to-lead form</h2>
+        </div>
+        <p className="text-sm text-muted-foreground">Share this link (or embed it) — anyone who submits becomes a new contact in your CRM.</p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <code className="flex-1 truncate rounded-lg border border-border bg-secondary/50 px-3 py-2 text-sm">{formUrl}</code>
+          <Button variant="outline" onClick={() => { navigator.clipboard.writeText(formUrl); toast.success("Link copied"); }}><Copy className="h-4 w-4" /> Copy</Button>
+          <a href={formUrl} target="_blank" rel="noreferrer"><Button variant="outline"><ExternalLink className="h-4 w-4" /> Open</Button></a>
+        </div>
       </Card>
 
       {/* Custom fields */}

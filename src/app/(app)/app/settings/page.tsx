@@ -13,12 +13,14 @@ export default async function SettingsPage({ searchParams }: { searchParams: { g
   if (!roleAtLeast(ctx.role, "ADMIN")) return <Forbidden need="Admin" />;
 
   const [billing, gmail] = await Promise.all([getBilling(ctx), getConnectedGmail(ctx.userId)]);
+  const formUrl = `${process.env.NEXT_PUBLIC_APP_URL || ""}/f/${ctx.organizationId}`;
   return (
     <SettingsClient
       billing={{ orgName: billing.orgName, monthlyGoal: billing.monthlyGoal }}
       gmail={gmail}
       googleConfigured={googleEnabled()}
       gmailStatus={searchParams.gmail ?? null}
+      formUrl={formUrl}
     />
   );
 }
