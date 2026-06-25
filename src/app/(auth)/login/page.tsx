@@ -44,6 +44,10 @@ export default function LoginPage() {
         <Field icon={Mail} label="Email" type="email" value={email} onChange={setEmail} placeholder="you@company.com" required />
         <Field icon={Lock} label="Password" type="password" value={password} onChange={setPassword} placeholder="••••••••" required />
 
+        <div className="text-right -mt-1">
+          <Link href="/forgot-password" className="text-sm font-medium text-primary hover:underline">Forgot password?</Link>
+        </div>
+
         {error && <p className="text-sm font-medium text-destructive">{error}</p>}
 
         <Button type="submit" variant="gradient" className="w-full" disabled={loading}>
