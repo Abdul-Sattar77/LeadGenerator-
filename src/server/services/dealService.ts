@@ -186,6 +186,18 @@ export async function updateDeal(ctx: TenantContext, id: string, input: UpdateDe
     data.status = status;
     data.wonAt = status === "WON" ? new Date() : null;
     await logActivity(ctx, "STAGE_CHANGED", { dealId: id }, { from: existing.stage?.name ?? "—", to: newStage.name });
+
+    // Automation: when a deal is won, promote its primary contact to Customer.
+    if (status === "WON") {
+      const contactId = input.primaryContactId ?? existing.primaryContactId;
+      if (contactId) {
+        await prisma.contact.updateMany({
+          where: { id: contactId, organizationId: ctx.organizationId },
+          data: { lifecycleStage: "CUSTOMER" },
+        });
+        await logActivity(ctx, "LIFECYCLE_CHANGED", { contactId }, { to: "CUSTOMER", reason: "deal won" });
+      }
+    }
   }
 
   return prisma.deal.update({ where: { id }, data });

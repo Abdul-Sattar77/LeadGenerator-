@@ -13,6 +13,7 @@ import { ActivityTimeline } from "@/components/app/ActivityTimeline";
 import { RecordTasks } from "@/components/app/RecordTasks";
 import { LogActivity } from "@/components/app/LogActivity";
 import { TagEditor } from "@/components/app/TagEditor";
+import { ScoreBadge } from "@/components/leads/badges";
 import { qk } from "@/lib/queryKeys";
 import { fadeUp } from "@/lib/motion";
 import { useContact, useAddContactNote } from "@/hooks/useContacts";
@@ -62,6 +63,7 @@ export default function ContactDetail({ id }: { id: string }) {
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl font-semibold tracking-tight">{fullName}</h1>
               <Badge variant="muted">{LIFECYCLE_LABEL[contact.lifecycleStage] ?? contact.lifecycleStage}</Badge>
+              {contact.leadScore != null && <ScoreBadge score={contact.leadScore} />}
             </div>
             <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-muted-foreground">
               {contact.title && <span className="flex items-center gap-1.5"><Briefcase className="h-4 w-4" />{contact.title}</span>}

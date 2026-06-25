@@ -76,6 +76,21 @@ export async function companiesCsv(ctx: TenantContext): Promise<string> {
   );
 }
 
+export async function contactsCsv(ctx: TenantContext): Promise<string> {
+  const contacts = await prisma.contact.findMany({
+    where: { organizationId: ctx.organizationId },
+    include: { owner: { select: { name: true } }, company: { select: { name: true } } },
+    orderBy: { createdAt: "desc" },
+  });
+  return toCsv(
+    ["First name", "Last name", "Email", "Phone", "Title", "Company", "Stage", "Score", "Owner", "Created"],
+    contacts.map((c) => [
+      c.firstName, c.lastName, c.email ?? "", c.phone ?? "", c.title ?? "", c.company?.name ?? "",
+      c.lifecycleStage, c.leadScore, c.owner?.name ?? "", c.createdAt.toISOString().slice(0, 10),
+    ])
+  );
+}
+
 export async function teamCsv(ctx: TenantContext): Promise<string> {
   const team = await listMembers(ctx);
   return toCsv(

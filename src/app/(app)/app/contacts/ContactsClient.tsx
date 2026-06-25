@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Contact2, Search, Plus, Loader2, Upload, Trash2, X, Bookmark } from "lucide-react";
+import { Contact2, Search, Plus, Loader2, Upload, Download, Trash2, X, Bookmark } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -114,6 +114,7 @@ export default function ContactsClient() {
         icon={Contact2}
         actions={
           <div className="flex items-center gap-2">
+            <a href="/api/app/contacts/export"><Button variant="outline"><Download className="h-4 w-4" /> Export</Button></a>
             <Button variant="outline" onClick={() => setShowImport(true)}><Upload className="h-4 w-4" /> Import CSV</Button>
             <Button onClick={() => setShowNew(true)}><Plus className="h-4 w-4" /> New contact</Button>
           </div>
