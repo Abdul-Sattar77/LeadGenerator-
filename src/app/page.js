@@ -14,7 +14,7 @@ import {
   CheckCircle2,
   Quote,
 } from "lucide-react";
-import SearchBar from "@/components/SearchBar";
+import HeroSearch from "@/components/HeroSearch";
 import { LogoMark } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -101,17 +101,17 @@ export default function HomePage() {
               {/* glow halo behind the search bar */}
               <div className="relative">
                 <div className="absolute -inset-3 -z-10 rounded-[1.75rem] bg-gradient-to-r from-indigo-400/30 via-fuchsia-400/30 to-sky-400/30 blur-2xl" />
-                <SearchBar />
+                <HeroSearch />
               </div>
               <div className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500" /> No signup to try
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500" /> 1 free search, no signup
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500" /> Up to 60 leads / search
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500" /> 20 leads / search
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500" /> CSV export
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500" /> Free plan: 100 companies
                 </span>
               </div>
             </motion.div>

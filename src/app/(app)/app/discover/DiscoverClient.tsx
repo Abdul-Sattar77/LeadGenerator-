@@ -16,7 +16,6 @@ import { Avatar } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ScoreBadge } from "@/components/leads/badges";
 
-const COUNTS = [20, 40, 60];
 
 type Result = {
   name: string;
@@ -29,7 +28,10 @@ type Result = {
   maps?: string;
 };
 
-export default function DiscoverClient() {
+export default function DiscoverClient({ isPaid }: { isPaid: boolean }) {
+  // Free plan: 20 leads/search. Paid: up to 60.
+  const COUNTS = isPaid ? [20, 40, 60] : [20];
+  const [limitReached, setLimitReached] = useState(false);
   const [what, setWhat] = useState("");
   const [where, setWhere] = useState("");
   const [max, setMax] = useState(20);
@@ -113,6 +115,7 @@ export default function DiscoverClient() {
         }),
       });
       const data = await res.json().catch(() => ({}));
+      if (res.status === 402) setLimitReached(true); // plan company-limit hit
       if (!res.ok) throw new Error(data.error || "Couldn’t save this company.");
       setSaved((s) => ({ ...s, [k]: "saved" }));
     } catch (e) {
@@ -146,10 +149,30 @@ export default function DiscoverClient() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-7">
-      <div>
-        <h1 className="text-3xl font-extrabold tracking-tight">Discover leads</h1>
-        <p className="mt-1 text-muted-foreground">Search Google Maps and save businesses straight into your CRM.</p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tight">Discover leads</h1>
+          <p className="mt-1 text-muted-foreground">Search Google Maps and save businesses straight into your CRM.</p>
+        </div>
+        {!isPaid && (
+          <span className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-muted-foreground">
+            Free plan · 20 leads/search · 100 companies
+          </span>
+        )}
       </div>
+
+      {/* Plan limit reached → upgrade */}
+      {limitReached && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500 text-white"><AlertTriangle className="h-4 w-4" /></span>
+            <div className="text-sm text-amber-900">
+              <span className="font-semibold">You’ve reached your free 100‑company limit.</span> Upgrade to keep saving leads.
+            </div>
+          </div>
+          <Link href="/app/billing"><Button variant="gradient" size="sm">Upgrade plan</Button></Link>
+        </div>
+      )}
 
       {/* Search bar */}
       <div className="relative">
