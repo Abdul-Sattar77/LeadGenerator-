@@ -349,6 +349,8 @@ model Contact {
   source         String   @default("MANUAL")
   lifecycleStage String   @default("LEAD") // LEAD | QUALIFIED | CUSTOMER | EVANGELIST
   leadScore      Int      @default(0)
+  emailOptOut    Boolean  @default(false) // unsubscribed (CAN-SPAM/GDPR)
+  emailOptOutAt  DateTime?
   customData     String? // JSON
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt

@@ -1,6 +1,7 @@
 import { prisma } from "@/server/db";
 import type { TenantContext } from "@/server/tenant";
 import { renderTemplate, rewriteLinksForTracking, trackingPixel } from "@/lib/email";
+import { unsubscribeFooterHtml } from "@/server/unsubscribe";
 import { sendForUser } from "@/server/services/userMailService";
 
 // Seeded for every org on first use.
@@ -77,10 +78,11 @@ export async function sendToContact(
 ): Promise<{ ok: true; delivered: boolean } | { ok: false; error: string }> {
   const contact = await prisma.contact.findFirst({
     where: { id: input.contactId, organizationId: ctx.organizationId },
-    select: { id: true, firstName: true, email: true, company: { select: { name: true } } },
+    select: { id: true, firstName: true, email: true, emailOptOut: true, company: { select: { name: true } } },
   });
   if (!contact) return { ok: false, error: "Contact not found." };
   if (!contact.email) return { ok: false, error: "This contact has no email address." };
+  if (contact.emailOptOut) return { ok: false, error: "This contact has unsubscribed." };
 
   const vars = { name: contact.company?.name || contact.firstName, contact: contact.firstName || "there" };
   const subject = renderTemplate(input.subject, vars);
@@ -101,7 +103,10 @@ export async function sendToContact(
     },
   });
 
-  const html = rewriteLinksForTracking(textToHtml(bodyText), msg.trackingId) + trackingPixel(msg.trackingId);
+  const html =
+    rewriteLinksForTracking(textToHtml(bodyText), msg.trackingId) +
+    unsubscribeFooterHtml(contact.id) + // compliance footer (not click-tracked)
+    trackingPixel(msg.trackingId);
   // Send from the user's connected Gmail when available, else the system mailer.
   const result = await sendForUser(ctx.userId, { to: contact.email, subject, html });
 
