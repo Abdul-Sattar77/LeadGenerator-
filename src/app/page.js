@@ -5,8 +5,10 @@ import { motion } from "framer-motion";
 import {
   Search, Sparkles, Star, ArrowRight, CheckCircle2, MapPin, Handshake,
   Mailbox, Building2, BarChart3, Bot, Zap, Globe, Phone, DollarSign, Trophy,
+  Play, ShieldCheck, Target,
 } from "lucide-react";
 import HeroSearch from "@/components/HeroSearch";
+import HeroMap from "@/components/HeroMap";
 import { LogoMark } from "@/components/Logo";
 import { CountUp } from "@/components/app/CountUp";
 import { Button } from "@/components/ui/button";
@@ -21,60 +23,71 @@ const reveal = { initial: "hidden", whileInView: "show", viewport: { once: true,
 export default function HomePage() {
   return (
     <div className="overflow-x-hidden">
-      {/* ───────── HERO ───────── */}
-      <section className="relative overflow-hidden mesh-bg">
-        <div className="grid-fade pointer-events-none absolute inset-0 -z-0" />
-        <div className="pointer-events-none absolute inset-0 -z-0">
-          <div className="blob left-[6%] top-[10%] h-72 w-72 bg-indigo-300" />
-          <div className="blob right-[4%] top-[18%] h-80 w-80 bg-fuchsia-300" style={{ animationDelay: "1.5s" }} />
-          <div className="blob left-1/2 bottom-0 h-72 w-72 bg-sky-300" style={{ animationDelay: "3s" }} />
+      {/* ───────── HERO (dark, premium) ───────── */}
+      <section className="relative -mt-16 overflow-hidden bg-[#09090f] pt-16 text-white">
+        <div className="pointer-events-none absolute inset-0 -z-0 bg-[radial-gradient(60%_50%_at_50%_0%,#1B1238_0%,#09090F_70%)]" />
+        <div className="pointer-events-none absolute -left-24 top-24 h-96 w-96 rounded-full bg-[#6C4CFF]/25 blur-[120px]" />
+        <div className="pointer-events-none absolute right-0 top-10 h-96 w-96 rounded-full bg-[#5E8BFF]/20 blur-[120px]" />
+        <div className="pointer-events-none absolute bottom-10 left-1/3 h-80 w-80 rounded-full bg-[#9E5CFF]/15 blur-[120px]" />
+        <div className="pointer-events-none absolute inset-0 -z-0" style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.045) 1px,transparent 1px)", backgroundSize: "48px 48px", maskImage: "radial-gradient(ellipse at 50% 25%, black 25%, transparent 80%)", WebkitMaskImage: "radial-gradient(ellipse at 50% 25%, black 25%, transparent 80%)" }} />
+
+        <div className="container relative z-10 pb-32 pt-12 sm:pt-16">
+          <div className="grid items-center gap-10 lg:grid-cols-2">
+            {/* LEFT */}
+            <motion.div variants={stagger} initial="hidden" animate="show">
+              <motion.span variants={fadeUp} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3.5 py-1.5 text-sm font-medium text-white/80 backdrop-blur">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-[#6C4CFF] to-[#9E5CFF]"><Zap className="h-3 w-3 text-white" /></span>
+                Smart Leads. Real Results.
+              </motion.span>
+              <motion.h1 variants={fadeUp} className="mt-6 text-6xl font-extrabold leading-[0.98] tracking-tight sm:text-7xl xl:text-[5.25rem]">
+                Find Leads.<br />
+                <span className="bg-gradient-to-r from-[#5E8BFF] via-[#6C4CFF] to-[#9E5CFF] bg-clip-text text-transparent">Close Deals.</span>
+              </motion.h1>
+              <motion.p variants={fadeUp} className="mt-6 max-w-md text-lg text-white/60">
+                All‑in‑one CRM to find verified businesses, connect instantly &amp; grow faster.
+              </motion.p>
+              <motion.div variants={fadeUp} className="mt-8 flex flex-wrap items-center gap-3">
+                <a href="#search" className="group inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-[#6C4CFF] to-[#9E5CFF] px-6 py-3.5 text-sm font-semibold text-white shadow-[0_10px_40px_rgba(108,76,255,0.5)] transition-transform hover:-translate-y-0.5">
+                  Start Free Search <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                </a>
+                <a href="#features" className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-5 py-3.5 text-sm font-semibold text-white/90 backdrop-blur transition-colors hover:bg-white/10">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full border border-white/20"><Play className="h-3 w-3 fill-white" /></span> See How It Works
+                </a>
+              </motion.div>
+            </motion.div>
+
+            {/* RIGHT — futuristic map */}
+            <motion.div initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1, ease: EASE }}>
+              <HeroMap />
+            </motion.div>
+          </div>
+
+          {/* Floating glass search card */}
+          <motion.div id="search" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.7, ease: EASE }} className="mt-14 scroll-mt-24">
+            <HeroSearch />
+          </motion.div>
+
+          {/* Feature strip */}
+          <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }} className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[
+              { icon: ShieldCheck, title: "100% Verified", sub: "Accurate & reliable data", color: "#9E5CFF" },
+              { icon: Zap, title: "Save Time", sub: "Automate outreach", color: "#5E8BFF" },
+              { icon: Target, title: "Close More Deals", sub: "Better leads, better results", color: "#ec4899" },
+              { icon: BarChart3, title: "All‑in‑One CRM", sub: "Everything in one place", color: "#22c55e" },
+            ].map((f) => (
+              <motion.div key={f.title} variants={fadeUp} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 backdrop-blur">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: `${f.color}22`, color: f.color }}><f.icon className="h-5 w-5" /></span>
+                <div className="min-w-0"><div className="truncate text-sm font-semibold text-white">{f.title}</div><div className="truncate text-xs text-white/45">{f.sub}</div></div>
+              </motion.div>
+            ))}
+          </motion.div>
         </div>
 
-        <div className="container relative z-10 py-20 sm:py-28">
-          <motion.div variants={stagger} initial="hidden" animate="show" className="mx-auto max-w-3xl text-center">
-            <motion.span variants={fadeUp} className="glass inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium text-muted-foreground">
-              <span className="relative flex h-2 w-2">
-                <span className="pulse-ring absolute inline-flex h-full w-full rounded-full bg-primary/60" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-              </span>
-              Find leads on Google Maps · close them in your CRM
-            </motion.span>
-
-            <motion.h1 variants={fadeUp} className="mt-6 text-balance text-5xl font-extrabold leading-[1.03] tracking-tight text-foreground sm:text-7xl">
-              Turn the map into{" "}
-              <span className="relative whitespace-nowrap text-gradient">
-                paying customers
-                <svg className="absolute -bottom-2 left-0 w-full" height="10" viewBox="0 0 300 10" fill="none" preserveAspectRatio="none">
-                  <motion.path d="M2 7 Q 150 -2 298 6" stroke="url(#g)" strokeWidth="3.5" strokeLinecap="round" fill="none"
-                    initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay: 0.6, duration: 0.9, ease: EASE }} />
-                  <defs><linearGradient id="g" x1="0" y1="0" x2="300" y2="0"><stop stopColor="#6366f1" /><stop offset="1" stopColor="#d946ef" /></linearGradient></defs>
-                </svg>
-              </span>
-            </motion.h1>
-
-            <motion.p variants={fadeUp} className="mx-auto mt-7 max-w-2xl text-balance text-lg text-muted-foreground sm:text-xl">
-              Search any business type in any city, pull verified companies &amp; contacts, then work
-              them through deals, sequences and tasks — all in one all‑in‑one CRM.
-            </motion.p>
-
-            <motion.div variants={fadeUp} className="mx-auto mt-10 max-w-3xl">
-              <div className="relative">
-                <div className="absolute -inset-3 -z-10 rounded-[1.75rem] bg-gradient-to-r from-indigo-400/30 via-fuchsia-400/30 to-sky-400/30 blur-2xl" />
-                <HeroSearch />
-              </div>
-              <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs text-muted-foreground">
-                <span className="font-medium">Try:</span>
-                {["Dentists in Karachi", "Gyms in Dubai", "Cafés in Lahore"].map((t) => (
-                  <span key={t} className="rounded-full border border-border bg-card/70 px-2.5 py-1">{t}</span>
-                ))}
-              </div>
-              <div className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
-                {["1 free search, no signup", "20 leads / search", "Free plan: 100 companies"].map((t) => (
-                  <span key={t} className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-emerald-500" /> {t}</span>
-                ))}
-              </div>
-            </motion.div>
-          </motion.div>
+        {/* curved transition into the light sections */}
+        <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-0">
+          <svg viewBox="0 0 1440 120" fill="none" preserveAspectRatio="none" className="h-[70px] w-full sm:h-[110px]">
+            <path d="M0 70 C 360 130 1080 10 1440 70 L1440 120 L0 120 Z" fill="hsl(var(--card))" />
+          </svg>
         </div>
       </section>
 
@@ -98,7 +111,7 @@ export default function HomePage() {
       </section>
 
       {/* ───────── BENTO FEATURES ───────── */}
-      <section className="container py-20 sm:py-24">
+      <section id="features" className="container scroll-mt-20 py-20 sm:py-24">
         <motion.div {...reveal} className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Everything from <span className="text-gradient">first search</span> to closed deal</h2>
           <p className="mt-4 text-muted-foreground">Most teams stitch together a scraper, a spreadsheet and an expensive CRM. This is all three — in one.</p>
