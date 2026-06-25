@@ -7,13 +7,23 @@ function num(v: unknown): number {
   return v == null ? 0 : Number(v);
 }
 
-export async function getReports(ctx: TenantContext) {
+export async function getReports(ctx: TenantContext, opts: { sinceDays?: number } = {}) {
   const org = ctx.organizationId;
-  const [companies, deals, pipeline, team] = await Promise.all([
-    prisma.company.findMany({ where: { organizationId: org }, select: { source: true, createdAt: true } }),
-    prisma.deal.findMany({ where: { organizationId: org }, select: { value: true, status: true, stageId: true } }),
+  const sinceDate = opts.sinceDays ? new Date(Date.now() - opts.sinceDays * 86_400_000) : null;
+  const rangeWhere = sinceDate ? { createdAt: { gte: sinceDate } } : {};
+
+  // Goal tracking: this calendar month's won revenue vs the org goal.
+  const startMonth = new Date();
+  startMonth.setDate(1);
+  startMonth.setHours(0, 0, 0, 0);
+
+  const [companies, deals, pipeline, team, orgRow, wonThisMonth] = await Promise.all([
+    prisma.company.findMany({ where: { organizationId: org, ...rangeWhere }, select: { source: true, createdAt: true } }),
+    prisma.deal.findMany({ where: { organizationId: org, ...rangeWhere }, select: { value: true, status: true, stageId: true } }),
     resolvePipeline(ctx, undefined),
     listMembers(ctx),
+    prisma.organization.findUnique({ where: { id: org }, select: { monthlyGoal: true } }),
+    prisma.deal.findMany({ where: { organizationId: org, status: "WON", wonAt: { gte: startMonth } }, select: { value: true } }),
   ]);
 
   const won = deals.filter((d) => d.status === "WON");
@@ -22,8 +32,10 @@ export async function getReports(ctx: TenantContext) {
   const closed = won.length + lost.length;
   const wonRevenue = won.reduce((s, d) => s + num(d.value), 0);
 
-  const since = Date.now() - 30 * 24 * 60 * 60 * 1000;
-  const last30 = companies.filter((c) => c.createdAt.getTime() >= since).length;
+  const last30 = companies.length; // companies within the selected range
+
+  const goalTarget = orgRow?.monthlyGoal ?? null;
+  const goalCurrent = wonThisMonth.reduce((s, d) => s + num(d.value), 0);
 
   const bySource = Object.entries(
     companies.reduce<Record<string, number>>((acc, c) => {
@@ -47,6 +59,11 @@ export async function getReports(ctx: TenantContext) {
       pipelineValue: open.reduce((s, d) => s + num(d.value), 0),
       winRate: closed ? Math.round((won.length / closed) * 100) : 0,
       avgDeal: won.length ? Math.round(wonRevenue / won.length) : 0,
+    },
+    goal: {
+      target: goalTarget,
+      current: goalCurrent,
+      pct: goalTarget ? Math.min(100, Math.round((goalCurrent / goalTarget) * 100)) : 0,
     },
     team,
   };

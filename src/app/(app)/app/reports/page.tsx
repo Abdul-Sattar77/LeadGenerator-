@@ -18,20 +18,28 @@ const SOURCE_LABEL: Record<string, string> = {
   GOOGLE_MAPS: "Google Maps", MANUAL: "Manual", IMPORT: "Import", REFERRAL: "Referral", WEBSITE: "Website",
 };
 
-export default async function ReportsPage() {
+const RANGES = [
+  { key: "7", label: "7d" },
+  { key: "30", label: "30d" },
+  { key: "90", label: "90d" },
+  { key: "all", label: "All" },
+];
+
+export default async function ReportsPage({ searchParams }: { searchParams: { range?: string } }) {
   const ctx = await requireAuth();
   if (!roleAtLeast(ctx.role, "MANAGER")) return <Forbidden need="Manager" />;
 
-  const { lead, sales, team } = await getReports(ctx);
+  const range = RANGES.some((r) => r.key === searchParams.range) ? searchParams.range! : "30";
+  const sinceDays = range === "all" ? undefined : Number(range);
+  const { lead, sales, goal, team } = await getReports(ctx, { sinceDays });
 
   const kpis = [
     { label: "Companies", value: lead.total, icon: "users" as const, tone: "indigo" as const },
-    { label: "New (30d)", value: lead.last30, icon: "check" as const, tone: "sky" as const },
+    { label: `New (${range === "all" ? "all" : range + "d"})`, value: lead.last30, icon: "check" as const, tone: "sky" as const },
     { label: "Won revenue", value: fmtMoney(sales.wonRevenue), icon: "dollar" as const, tone: "emerald" as const },
     { label: "Win rate", value: `${sales.winRate}%`, icon: "percent" as const, tone: "violet" as const },
     { label: "Avg deal", value: fmtMoney(sales.avgDeal), icon: "trending" as const, tone: "amber" as const },
   ];
-
 
   return (
     <div className="mx-auto max-w-6xl space-y-7">
@@ -40,7 +48,15 @@ export default async function ReportsPage() {
           <h1 className="text-3xl font-extrabold tracking-tight">Reports</h1>
           <p className="mt-1 text-muted-foreground">Lead, sales &amp; team performance — export anytime.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center rounded-xl border border-border bg-card p-0.5">
+            {RANGES.map((r) => (
+              <a key={r.key} href={`/app/reports?range=${r.key}`}
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${range === r.key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"}`}>
+                {r.label}
+              </a>
+            ))}
+          </div>
           <a href="/api/app/reports?type=companies" className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/70 bg-white/80 px-4 text-sm font-semibold shadow-soft backdrop-blur transition hover:bg-white">
             <Download className="h-4 w-4" /> Companies CSV
           </a>
@@ -51,6 +67,26 @@ export default async function ReportsPage() {
       </div>
 
       <KpiRow items={kpis} />
+
+      {/* Monthly goal */}
+      <Card className="p-6">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <h2 className="font-semibold">Monthly goal</h2>
+          {goal.target ? (
+            <span className="text-sm text-muted-foreground"><span className="font-semibold text-foreground">{fmtMoney(goal.current)}</span> of {fmtMoney(goal.target)} won this month</span>
+          ) : (
+            <span className="text-sm text-muted-foreground">No goal set — add one in <a href="/app/settings" className="font-medium text-primary hover:underline">Settings</a>.</span>
+          )}
+        </div>
+        {goal.target ? (
+          <div className="mt-3">
+            <div className="h-3 overflow-hidden rounded-full bg-secondary">
+              <div className={`h-full rounded-full ${goal.pct >= 100 ? "bg-emerald-500" : "bg-gradient-to-r from-indigo-500 to-violet-500"}`} style={{ width: `${goal.pct}%` }} />
+            </div>
+            <p className="mt-1.5 text-xs text-muted-foreground">{goal.pct}% of this month's target {goal.pct >= 100 && "— smashed it 🎉"}</p>
+          </div>
+        ) : null}
+      </Card>
 
       <div className="grid gap-5 lg:grid-cols-2">
         {/* Deals by stage */}
