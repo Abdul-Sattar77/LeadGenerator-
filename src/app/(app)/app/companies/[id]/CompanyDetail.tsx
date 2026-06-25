@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  Building2, ArrowLeft, Globe, Phone, MapPin, Briefcase, Loader2, Users, Send, Plus, Sparkles,
+  Building2, ArrowLeft, Globe, Phone, MapPin, Briefcase, Loader2, Users, Send, Plus, Sparkles, Trash2,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { Card } from "@/components/ui/card";
@@ -73,7 +74,10 @@ export default function CompanyDetail({ id }: { id: string }) {
             </div>
           </div>
           <div className="flex flex-col items-end gap-2">
-            <EnrichButton id={id} hasWebsite={Boolean(company.website)} />
+            <div className="flex items-center gap-2">
+              <EnrichButton id={id} hasWebsite={Boolean(company.website)} />
+              <DeleteCompanyButton id={id} name={company.name} />
+            </div>
             {company.owner && <Badge variant="muted">Owner · {company.owner.name}</Badge>}
           </div>
         </div>
@@ -178,6 +182,27 @@ function EnrichButton({ id, hasWebsite }: { id: string; hasWebsite: boolean }) {
       title={hasWebsite ? "Find emails, phones & socials from the website" : "Add a website to enable enrichment"}
     >
       {enrich.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Enrich
+    </Button>
+  );
+}
+
+function DeleteCompanyButton({ id, name }: { id: string; name: string }) {
+  const router = useRouter();
+  const qc = useQueryClient();
+  const del = useMutation({
+    mutationFn: () => api(`/api/app/companies/${id}`, { method: "DELETE" }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["companies"] }); toast.success("Company deleted"); router.push("/app/companies"); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't delete (managers only)."),
+  });
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      className="text-rose-600"
+      disabled={del.isPending}
+      onClick={() => { if (confirm(`Delete "${name}"? Its deals and contact links are removed too. This can't be undone.`)) del.mutate(); }}
+    >
+      {del.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />} Delete
     </Button>
   );
 }

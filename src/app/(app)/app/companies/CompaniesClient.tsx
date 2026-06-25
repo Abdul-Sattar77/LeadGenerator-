@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { useQueryClient } from "@tanstack/react-query";
-import { Building2, Search, Plus, Loader2, Globe, MapPin, Upload, Download } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Building2, Search, Plus, Loader2, Globe, MapPin, Upload, Download, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,10 +29,12 @@ function money(n: number) {
 }
 
 export default function CompaniesClient() {
+  const qc = useQueryClient();
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
   const [showNew, setShowNew] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("new") === "1") setShowNew(true);
   }, []);
@@ -40,6 +42,22 @@ export default function CompaniesClient() {
   const companies = data?.companies ?? [];
   const total = data?.total ?? 0;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  const clearSel = () => setSelected(new Set());
+  const toggle = (id: string) => setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const allOnPage = companies.length > 0 && companies.every((c) => selected.has(c.id));
+  const toggleAll = () => setSelected((s) => {
+    const n = new Set(s);
+    if (allOnPage) companies.forEach((c) => n.delete(c.id)); else companies.forEach((c) => n.add(c.id));
+    return n;
+  });
+
+  const bulk = useMutation({
+    mutationFn: (body: { ids: string[]; action: string; value?: string }) =>
+      api("/api/app/companies/bulk", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: (r: any) => { clearSel(); qc.invalidateQueries({ queryKey: ["companies"] }); toast.success(`Updated ${r.affected} compan${r.affected === 1 ? "y" : "ies"}`); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Bulk action failed"),
+  });
 
   return (
     <div>
@@ -69,6 +87,19 @@ export default function CompaniesClient() {
         <span className="text-sm text-muted-foreground">{total} total</span>
       </div>
 
+      {selected.size > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
+          <span className="font-semibold text-primary">{selected.size} selected</span>
+          <Button
+            variant="outline" size="sm" className="text-rose-600"
+            onClick={() => { if (confirm(`Delete ${selected.size} compan${selected.size === 1 ? "y" : "ies"}? This also removes their deals & contacts links.`)) bulk.mutate({ ids: [...selected], action: "delete" }); }}
+          >
+            <Trash2 className="h-4 w-4" /> Delete
+          </Button>
+          <Button variant="ghost" size="sm" onClick={clearSel}>Clear</Button>
+        </div>
+      )}
+
       <Card className="overflow-hidden">
         {isLoading ? (
           <div className="flex items-center justify-center py-16 text-muted-foreground">
@@ -86,6 +117,7 @@ export default function CompaniesClient() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10"><input type="checkbox" checked={allOnPage} onChange={toggleAll} className="h-4 w-4" aria-label="Select all" /></TableHead>
                 <TableHead>Company</TableHead>
                 <TableHead>Industry</TableHead>
                 <TableHead>Location</TableHead>
@@ -97,7 +129,8 @@ export default function CompaniesClient() {
             </TableHeader>
             <motion.tbody variants={stagger(0.03)} initial="hidden" animate="show" className="divide-y divide-border">
               {companies.map((c: CompanyRow) => (
-                <motion.tr key={c.id} variants={fadeUp} className="group transition-colors hover:bg-secondary/50">
+                <motion.tr key={c.id} variants={fadeUp} className={`group transition-colors hover:bg-secondary/50 ${selected.has(c.id) ? "bg-primary/5" : ""}`}>
+                  <TableCell><input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} className="h-4 w-4" aria-label={`Select ${c.name}`} /></TableCell>
                   <TableCell>
                     <Link href={`/app/companies/${c.id}`} className="flex items-center gap-3">
                       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-semibold uppercase text-primary">

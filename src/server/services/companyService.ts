@@ -133,6 +133,37 @@ export async function updateCompany(ctx: TenantContext, id: string, input: Updat
   return prisma.company.update({ where: { id }, data: input });
 }
 
+export async function bulkCompanies(
+  ctx: TenantContext,
+  ids: string[],
+  action: "delete" | "assignOwner" | "addTag",
+  value?: string
+) {
+  const scope = { id: { in: ids }, organizationId: ctx.organizationId };
+  if (action === "delete") {
+    const res = await prisma.company.deleteMany({ where: scope });
+    return { affected: res.count };
+  }
+  if (action === "assignOwner") {
+    if (!(await isOrgMember(ctx, value))) throw new Error("Owner must be in your organization.");
+    const res = await prisma.company.updateMany({ where: scope, data: { ownerId: value || null } });
+    return { affected: res.count };
+  }
+  if (action === "addTag") {
+    if (!value) throw new Error("Tag required.");
+    const tag = await prisma.tag.findFirst({ where: { id: value, organizationId: ctx.organizationId }, select: { id: true } });
+    if (!tag) throw new Error("Tag not found.");
+    const targets = await prisma.company.findMany({ where: scope, select: { id: true } });
+    let added = 0;
+    for (const t of targets) {
+      const exists = await prisma.tagLink.findFirst({ where: { tagId: value, companyId: t.id }, select: { id: true } });
+      if (!exists) { await prisma.tagLink.create({ data: { tagId: value, companyId: t.id } }); added++; }
+    }
+    return { affected: added };
+  }
+  throw new Error("Unknown action.");
+}
+
 export interface CompanyImportRow {
   name?: string; industry?: string; website?: string; phone?: string; address?: string; city?: string; country?: string;
 }
