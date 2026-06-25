@@ -9,7 +9,7 @@ import {
 } from "@dnd-kit/core";
 import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 import {
-  Search, Plus, Loader2, Inbox, Building2, TrendingUp, Trophy, DollarSign, Percent, Layers, AlertTriangle, Clock,
+  Search, Plus, Loader2, Inbox, Building2, TrendingUp, Trophy, DollarSign, Percent, Layers, AlertTriangle, Clock, Settings2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -120,6 +120,7 @@ export default function DealsBoard() {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input value={q} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQ(e.target.value)} placeholder="Search deals…" className="h-9 w-44 pl-9" />
             </div>
+            <Link href="/app/pipelines"><Button variant="outline"><Settings2 className="h-4 w-4" /> Stages</Button></Link>
             <Button onClick={() => setShowNew(true)}><Plus className="h-4 w-4" /> New deal</Button>
           </div>
         }
