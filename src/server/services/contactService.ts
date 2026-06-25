@@ -2,6 +2,7 @@ import { prisma } from "@/server/db";
 import type { TenantContext } from "@/server/tenant";
 import { isOrgMember } from "@/server/orgGuards";
 import { getTimeline } from "@/server/services/recordService";
+import { getLeadLimit } from "@/server/services/billingService";
 import type { CreateContactInput, UpdateContactInput } from "@/lib/validations/contact";
 
 export interface ContactFilters {
@@ -200,6 +201,11 @@ export async function importContacts(ctx: TenantContext, rows: ImportRow[]) {
   let created = 0;
   let skipped = 0;
   const companyCache = new Map<string, string>(); // name(lower) -> id
+  const seenEmails = new Set<string>(); // in-batch email dedupe
+
+  // Respect the plan's company cap (Free = 100): don't create new companies past it.
+  const limit = await getLeadLimit(ctx.organizationId);
+  let companyCount = limit == null ? 0 : await prisma.company.count({ where: { organizationId: ctx.organizationId } });
 
   for (const r of rows) {
     const firstName = (r.firstName || "").trim();
@@ -207,8 +213,10 @@ export async function importContacts(ctx: TenantContext, rows: ImportRow[]) {
     if (!firstName && !email) { skipped++; continue; }
 
     if (email) {
+      if (seenEmails.has(email)) { skipped++; continue; }
       const dupe = await prisma.contact.findFirst({ where: { organizationId: ctx.organizationId, email }, select: { id: true } });
       if (dupe) { skipped++; continue; }
+      seenEmails.add(email);
     }
 
     let companyId: string | undefined;
@@ -218,9 +226,16 @@ export async function importContacts(ctx: TenantContext, rows: ImportRow[]) {
       companyId = companyCache.get(key);
       if (!companyId) {
         const found = await prisma.company.findFirst({ where: { organizationId: ctx.organizationId, name: companyName }, select: { id: true } });
-        const co = found ?? (await prisma.company.create({ data: { organizationId: ctx.organizationId, name: companyName, source: "IMPORT", ownerId: ctx.userId } }));
-        companyId = co.id;
-        companyCache.set(key, companyId);
+        if (found) {
+          companyId = found.id;
+          companyCache.set(key, companyId);
+        } else if (limit == null || companyCount < limit) {
+          const co = await prisma.company.create({ data: { organizationId: ctx.organizationId, name: companyName, source: "IMPORT", ownerId: ctx.userId } });
+          companyId = co.id;
+          companyCount++;
+          companyCache.set(key, companyId);
+        }
+        // else: at the company cap — import the contact without creating a company.
       }
     }
 

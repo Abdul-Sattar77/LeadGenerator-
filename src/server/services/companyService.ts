@@ -2,7 +2,17 @@ import { prisma } from "@/server/db";
 import type { TenantContext } from "@/server/tenant";
 import { isOrgMember } from "@/server/orgGuards";
 import { getTimeline } from "@/server/services/recordService";
+import { getLeadLimit } from "@/server/services/billingService";
+import { PlanLimitError } from "@/lib/plans";
 import type { CreateCompanyInput, UpdateCompanyInput } from "@/lib/validations/company";
+
+/** Throws PlanLimitError if the org is at its plan's company cap (Free = 100). */
+export async function assertCompanyCapacity(ctx: TenantContext) {
+  const limit = await getLeadLimit(ctx.organizationId);
+  if (limit == null) return; // unlimited (paid)
+  const count = await prisma.company.count({ where: { organizationId: ctx.organizationId } });
+  if (count >= limit) throw new PlanLimitError(limit);
+}
 
 export interface CompanyFilters {
   q?: string;
@@ -102,6 +112,7 @@ export async function getCompany(ctx: TenantContext, id: string) {
 }
 
 export async function createCompany(ctx: TenantContext, input: CreateCompanyInput) {
+  await assertCompanyCapacity(ctx); // Free plan = 100 companies
   if (!(await isOrgMember(ctx, input.ownerId))) {
     throw new Error("Owner must be a member of your organization.");
   }

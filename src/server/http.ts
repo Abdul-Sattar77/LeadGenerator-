@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { ZodSchema } from "zod";
 import { getTenantContext, type TenantContext } from "@/server/tenant";
 import { roleAtLeast, type Role } from "@/lib/enums";
+import { PlanLimitError } from "@/lib/plans";
 
 // Standard API envelope.
 export function ok<T>(data: T, init?: ResponseInit) {
@@ -52,6 +53,8 @@ export function route<T = undefined>(
     try {
       return await handler({ ctx, body, req, params: context?.params ?? {} });
     } catch (e) {
+      // Plan caps (e.g. Free = 100 companies) → 402 so the UI can prompt upgrade.
+      if (e instanceof PlanLimitError) return fail(e.message, 402);
       const message = e instanceof Error ? e.message : "Server error";
       return fail(message, 500);
     }
