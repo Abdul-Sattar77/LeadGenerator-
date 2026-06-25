@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import {
   Search, Sparkles, Star, ArrowRight, CheckCircle2, MapPin, Handshake,
-  Mailbox, Building2, BarChart3, Bot, Zap, Globe, Phone, DollarSign, Trophy,
+  Mailbox, BarChart3, Bot, Globe, Phone, DollarSign, Trophy, Building2, ChevronDown, Quote,
 } from "lucide-react";
 import HeroSearch from "@/components/HeroSearch";
 import { LogoMark } from "@/components/Logo";
@@ -12,23 +14,43 @@ import { CountUp } from "@/components/app/CountUp";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
+// three.js globe — client only.
+const HeroGlobe = dynamic(() => import("@/components/HeroGlobe"), { ssr: false });
+
 const EASE = [0.16, 1, 0.3, 1];
 const fadeUp = { hidden: { opacity: 0, y: 24 }, show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: EASE } } };
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.1 } } };
-
 const reveal = { initial: "hidden", whileInView: "show", viewport: { once: true, margin: "-60px" }, variants: fadeUp };
+
+const CLIENTS = ["Nexa Media", "GrowthLab", "Scoutbird", "Rocket Digital", "Big Leap", "Mobiosoft", "Level Up", "Shopido"];
+const TESTIMONIALS = [
+  { name: "Ayesha Khan", role: "Sales Lead, Nexa Media", quote: "We built a 300‑business outreach list in an afternoon. What took days is now a coffee break." },
+  { name: "Daniel Reyes", role: "Founder, GrowthLab", quote: "Discover → enrich → pipeline in one tool. We cancelled two other subscriptions." },
+  { name: "Sara Malik", role: "Agency Owner", quote: "My team finds local prospects in any city instantly. It genuinely feels premium." },
+  { name: "Bilal Ahmed", role: "BDR, Rocket Digital", quote: "Sequences run our follow‑ups on autopilot. Reply rates doubled." },
+  { name: "Hina Raza", role: "Co‑founder, Level Up", quote: "The weighted forecast finally tells me which deals will actually close." },
+];
+const FAQS = [
+  { q: "Where do the leads come from?", a: "We pull verified businesses from Google Maps — name, category, phone, website, rating and address — then let you save them as companies & contacts." },
+  { q: "Is there a free plan?", a: "Yes. Anyone gets 1 free search with no signup, and the free account includes up to 100 companies and 20 leads per search." },
+  { q: "Can it replace my CRM?", a: "That's the idea — companies, contacts, deals, a drag‑and‑drop pipeline, tasks, notes, email and reports are all built in." },
+  { q: "Do you send emails for me?", a: "Yes — connect your Gmail and send tracked emails, or run automated multi‑step sequences. Every email includes an unsubscribe link." },
+  { q: "How much does it cost?", a: "Free to start, Pro at $29/mo, Agency at $99/mo. Local pricing is shown at checkout." },
+];
 
 export default function HomePage() {
   return (
     <div className="overflow-x-hidden">
-      {/* ───────── HERO ───────── */}
+      {/* ───────── HERO (light + 3D globe) ───────── */}
       <section className="relative overflow-hidden mesh-bg">
         <div className="grid-fade pointer-events-none absolute inset-0 -z-0" />
-        <div className="pointer-events-none absolute inset-0 -z-0">
-          <div className="blob left-[6%] top-[10%] h-72 w-72 bg-indigo-300" />
-          <div className="blob right-[4%] top-[18%] h-80 w-80 bg-fuchsia-300" style={{ animationDelay: "1.5s" }} />
-          <div className="blob left-1/2 bottom-0 h-72 w-72 bg-sky-300" style={{ animationDelay: "3s" }} />
+        {/* three.js globe, softly faded into the page */}
+        <div className="pointer-events-none absolute inset-0 -z-0 opacity-60">
+          <div className="absolute left-1/2 top-1/2 h-[120%] w-[120%] -translate-x-1/2 -translate-y-1/2"><HeroGlobe /></div>
         </div>
+        <div className="pointer-events-none absolute inset-0 -z-0 bg-[radial-gradient(ellipse_at_center,transparent_45%,hsl(var(--background))_80%)]" />
+        <div className="pointer-events-none absolute -left-20 top-10 h-72 w-72 rounded-full bg-indigo-300/40 blur-3xl" />
+        <div className="pointer-events-none absolute -right-16 top-40 h-80 w-80 rounded-full bg-fuchsia-300/30 blur-3xl" />
 
         <div className="container relative z-10 py-20 sm:py-28">
           <motion.div variants={stagger} initial="hidden" animate="show" className="mx-auto max-w-3xl text-center">
@@ -45,9 +67,8 @@ export default function HomePage() {
               <span className="relative whitespace-nowrap text-gradient">
                 paying customers
                 <svg className="absolute -bottom-2 left-0 w-full" height="10" viewBox="0 0 300 10" fill="none" preserveAspectRatio="none">
-                  <motion.path d="M2 7 Q 150 -2 298 6" stroke="url(#g)" strokeWidth="3.5" strokeLinecap="round" fill="none"
-                    initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay: 0.6, duration: 0.9, ease: EASE }} />
-                  <defs><linearGradient id="g" x1="0" y1="0" x2="300" y2="0"><stop stopColor="#6366f1" /><stop offset="1" stopColor="#d946ef" /></linearGradient></defs>
+                  <motion.path d="M2 7 Q 150 -2 298 6" stroke="url(#u)" strokeWidth="3.5" strokeLinecap="round" fill="none" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay: 0.6, duration: 0.9, ease: EASE }} />
+                  <defs><linearGradient id="u" x1="0" y1="0" x2="300" y2="0"><stop stopColor="#6366f1" /><stop offset="1" stopColor="#d946ef" /></linearGradient></defs>
                 </svg>
               </span>
             </motion.h1>
@@ -78,8 +99,20 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ───────── TRUSTED BY marquee (light) ───────── */}
+      <section className="border-y border-border bg-card py-8">
+        <p className="mb-4 text-center text-xs font-medium uppercase tracking-widest text-muted-foreground/70">Trusted by sales teams &amp; agencies</p>
+        <div className="relative overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
+          <motion.div className="flex w-max gap-12 whitespace-nowrap" animate={{ x: ["0%", "-50%"] }} transition={{ duration: 22, repeat: Infinity, ease: "linear" }}>
+            {[...CLIENTS, ...CLIENTS].map((c, i) => (
+              <span key={i} className="text-lg font-bold tracking-tight text-muted-foreground/45">{c}</span>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
       {/* ───────── STATS ───────── */}
-      <section className="border-y border-border bg-card">
+      <section className="border-b border-border bg-card">
         <div className="container grid grid-cols-2 gap-6 py-10 sm:grid-cols-4">
           {[
             { v: 8, suffix: "M+", label: "Businesses reachable" },
@@ -88,9 +121,7 @@ export default function HomePage() {
             { v: 100, suffix: "%", label: "Built for closing" },
           ].map((s, i) => (
             <motion.div key={s.label} {...reveal} transition={{ delay: i * 0.08 }} className="text-center">
-              <div className="text-3xl font-extrabold tracking-tight text-gradient sm:text-4xl">
-                <CountUp value={s.v} format={(n) => `${Math.round(n)}${s.suffix}`} />
-              </div>
+              <div className="text-3xl font-extrabold tracking-tight text-gradient sm:text-4xl"><CountUp value={s.v} format={(n) => `${Math.round(n)}${s.suffix}`} /></div>
               <div className="mt-1 text-sm text-muted-foreground">{s.label}</div>
             </motion.div>
           ))}
@@ -103,10 +134,7 @@ export default function HomePage() {
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Everything from <span className="text-gradient">first search</span> to closed deal</h2>
           <p className="mt-4 text-muted-foreground">Most teams stitch together a scraper, a spreadsheet and an expensive CRM. This is all three — in one.</p>
         </motion.div>
-
-        <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-60px" }}
-          className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {/* big tile */}
+        <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-60px" }} className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <motion.div variants={fadeUp} className="lg:col-span-2">
             <Card className="group relative h-full overflow-hidden p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-glow">
               <div className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-indigo-300/30 blur-2xl transition-opacity group-hover:opacity-80" />
@@ -120,7 +148,6 @@ export default function HomePage() {
               </div>
             </Card>
           </motion.div>
-
           {[
             { icon: Handshake, title: "Drag‑and‑drop pipeline", desc: "Move deals across stages with a weighted forecast and stale‑deal alerts." },
             { icon: Mailbox, title: "Email sequences", desc: "Automated multi‑step follow‑ups that send on schedule and track opens." },
@@ -139,16 +166,14 @@ export default function HomePage() {
         </motion.div>
       </section>
 
-      {/* ───────── PRODUCT SHOWCASE (pipeline) ───────── */}
+      {/* ───────── PRODUCT SHOWCASE ───────── */}
       <section className="border-y border-border bg-card">
         <div className="container py-20 sm:py-24">
           <motion.div {...reveal} className="mx-auto max-w-2xl text-center">
             <span className="inline-flex items-center gap-2 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground"><Handshake className="h-3.5 w-3.5" /> Your sales pipeline</span>
             <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">See every deal at a glance</h2>
           </motion.div>
-
-          <motion.div initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, ease: EASE }}
-            className="relative mx-auto mt-12 max-w-5xl">
+          <motion.div initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, ease: EASE }} className="relative mx-auto mt-12 max-w-5xl">
             <div className="absolute -inset-x-8 -bottom-6 top-8 -z-10 rounded-[2rem] bg-gradient-to-tr from-indigo-300/40 via-fuchsia-300/30 to-sky-300/40 blur-3xl" />
             <Card className="overflow-hidden p-0 ring-1 ring-white/60">
               <div className="flex items-center gap-1.5 border-b border-border bg-secondary/60 px-4 py-3">
@@ -163,13 +188,10 @@ export default function HomePage() {
                   { stage: "Lost", color: "bg-rose-500", deals: [["Bright Smile", "$0"]] },
                 ].map((col, ci) => (
                   <div key={col.stage}>
-                    <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold">
-                      <span className={`h-2.5 w-2.5 rounded-full ${col.color}`} /> {col.stage}
-                    </div>
+                    <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold"><span className={`h-2.5 w-2.5 rounded-full ${col.color}`} /> {col.stage}</div>
                     <div className="space-y-2">
                       {col.deals.map((d, di) => (
-                        <motion.div key={d[0]} initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 + ci * 0.1 + di * 0.08 }}
-                          className="rounded-lg border border-border bg-card p-2.5 shadow-sm">
+                        <motion.div key={d[0]} initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 + ci * 0.1 + di * 0.08 }} className="rounded-lg border border-border bg-card p-2.5 shadow-sm">
                           <div className="truncate text-xs font-semibold">{d[0]}</div>
                           <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700"><DollarSign className="h-2.5 w-2.5" />{d[1]}</div>
                         </motion.div>
@@ -185,9 +207,7 @@ export default function HomePage() {
 
       {/* ───────── HOW IT WORKS ───────── */}
       <section className="container py-20 sm:py-24">
-        <motion.div {...reveal} className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">From zero to pipeline in 3 steps</h2>
-        </motion.div>
+        <motion.div {...reveal} className="mx-auto max-w-2xl text-center"><h2 className="text-3xl font-bold tracking-tight sm:text-4xl">From zero to pipeline in 3 steps</h2></motion.div>
         <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }} className="relative mt-14 grid gap-8 md:grid-cols-3">
           <div className="pointer-events-none absolute left-0 right-0 top-7 hidden h-px bg-gradient-to-r from-transparent via-border to-transparent md:block" />
           {[
@@ -205,34 +225,56 @@ export default function HomePage() {
         </motion.div>
       </section>
 
-      {/* ───────── PRICING ───────── */}
-      <section className="border-t border-border bg-card">
-        <div className="container py-20 sm:py-24">
-          <motion.div {...reveal} className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Simple, honest pricing</h2>
-            <p className="mt-4 text-muted-foreground">Start free. Upgrade when you're ready to scale.</p>
-          </motion.div>
-          <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }} className="mt-12 grid gap-5 lg:grid-cols-3">
-            {[
-              { name: "Free", price: "$0", blurb: "For trying it out.", feats: ["100 companies", "20 leads / search", "Pipeline & tasks", "CSV export"], cta: "Start free", highlight: false },
-              { name: "Pro", price: "$29", blurb: "For small sales teams.", feats: ["Unlimited companies", "3 seats", "Sequences & campaigns", "Reports & analytics"], cta: "Start free trial", highlight: true },
-              { name: "Agency", price: "$99", blurb: "For agencies at scale.", feats: ["Unlimited companies", "25 seats", "Team performance", "CSV export & API"], cta: "Start free trial", highlight: false },
-            ].map((p) => (
-              <motion.div key={p.name} variants={fadeUp} whileHover={{ y: -6 }}>
-                <Card className={`relative flex h-full flex-col p-7 ${p.highlight ? "ring-2 ring-primary shadow-glow" : ""}`}>
-                  {p.highlight && <span className="brand-gradient absolute -top-3 left-7 rounded-full px-3 py-0.5 text-xs font-semibold text-white shadow-soft">Most popular</span>}
-                  <h3 className="text-lg font-bold">{p.name}</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">{p.blurb}</p>
-                  <div className="mt-4 flex items-end gap-1"><span className="text-4xl font-extrabold tracking-tight">{p.price}</span><span className="mb-1 text-sm text-muted-foreground">/ mo</span></div>
-                  <ul className="mt-5 flex-1 space-y-2.5 text-sm">
-                    {p.feats.map((f) => <li key={f} className="flex items-start gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" /> {f}</li>)}
-                  </ul>
-                  <Link href="/register" className="mt-6"><Button variant={p.highlight ? "gradient" : "outline"} className="w-full">{p.cta}</Button></Link>
-                </Card>
-              </motion.div>
+      {/* ───────── TESTIMONIALS CAROUSEL ───────── */}
+      <section className="border-y border-border bg-card py-20 sm:py-24">
+        <motion.div {...reveal} className="container mx-auto max-w-2xl text-center"><h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Loved by sales teams</h2></motion.div>
+        <div className="relative mt-12 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]">
+          <motion.div className="flex w-max gap-5" animate={{ x: ["0%", "-50%"] }} transition={{ duration: 36, repeat: Infinity, ease: "linear" }}>
+            {[...TESTIMONIALS, ...TESTIMONIALS].map((t, i) => (
+              <Card key={i} className="flex w-[340px] shrink-0 flex-col p-6">
+                <Quote className="h-7 w-7 text-accent-foreground/30" />
+                <p className="mt-3 flex-1 text-sm text-foreground">“{t.quote}”</p>
+                <div className="mt-5 flex items-center gap-3">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">{t.name.split(" ").map((w) => w[0]).join("").slice(0, 2)}</span>
+                  <div><div className="text-sm font-semibold">{t.name}</div><div className="text-xs text-muted-foreground">{t.role}</div></div>
+                </div>
+              </Card>
             ))}
           </motion.div>
-          <p className="mt-4 text-center text-xs text-muted-foreground">Prices shown in USD · local pricing available at checkout</p>
+        </div>
+      </section>
+
+      {/* ───────── PRICING ───────── */}
+      <section className="container py-20 sm:py-24">
+        <motion.div {...reveal} className="mx-auto max-w-2xl text-center">
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Simple, honest pricing</h2>
+          <p className="mt-4 text-muted-foreground">Start free. Upgrade when you're ready to scale.</p>
+        </motion.div>
+        <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }} className="mt-12 grid gap-5 lg:grid-cols-3">
+          {[
+            { name: "Free", price: "$0", blurb: "For trying it out.", feats: ["100 companies", "20 leads / search", "Pipeline & tasks", "CSV export"], cta: "Start free", highlight: false },
+            { name: "Pro", price: "$29", blurb: "For small sales teams.", feats: ["Unlimited companies", "3 seats", "Sequences & campaigns", "Reports & analytics"], cta: "Start free trial", highlight: true },
+            { name: "Agency", price: "$99", blurb: "For agencies at scale.", feats: ["Unlimited companies", "25 seats", "Team performance", "CSV export & API"], cta: "Start free trial", highlight: false },
+          ].map((p) => (
+            <motion.div key={p.name} variants={fadeUp} whileHover={{ y: -6 }}>
+              <Card className={`relative flex h-full flex-col p-7 ${p.highlight ? "ring-2 ring-primary shadow-glow" : ""}`}>
+                {p.highlight && <span className="brand-gradient absolute -top-3 left-7 rounded-full px-3 py-0.5 text-xs font-semibold text-white shadow-soft">Most popular</span>}
+                <h3 className="text-lg font-bold">{p.name}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">{p.blurb}</p>
+                <div className="mt-4 flex items-end gap-1"><span className="text-4xl font-extrabold tracking-tight">{p.price}</span><span className="mb-1 text-sm text-muted-foreground">/ mo</span></div>
+                <ul className="mt-5 flex-1 space-y-2.5 text-sm">{p.feats.map((f) => <li key={f} className="flex items-start gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" /> {f}</li>)}</ul>
+                <Link href="/register" className="mt-6"><Button variant={p.highlight ? "gradient" : "outline"} className="w-full">{p.cta}</Button></Link>
+              </Card>
+            </motion.div>
+          ))}
+        </motion.div>
+      </section>
+
+      {/* ───────── FAQ ───────── */}
+      <section className="border-t border-border bg-card py-20 sm:py-24">
+        <div className="container mx-auto max-w-3xl">
+          <motion.div {...reveal} className="text-center"><h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Questions, answered</h2></motion.div>
+          <div className="mt-10 space-y-3">{FAQS.map((f, i) => <Faq key={i} {...f} />)}</div>
         </div>
       </section>
 
@@ -245,9 +287,7 @@ export default function HomePage() {
             <Sparkles className="relative mx-auto h-8 w-8" />
             <h2 className="relative mt-4 text-3xl font-bold tracking-tight sm:text-4xl">Find your next customer in the next 5 minutes</h2>
             <p className="relative mx-auto mt-4 max-w-xl text-white/85">Free to start — no credit card. Run a search right now and see real leads.</p>
-            <Link href="/register" className="relative mt-8 inline-block">
-              <Button size="lg" className="bg-white text-primary hover:bg-white/90">Start finding leads <ArrowRight className="h-4 w-4" /></Button>
-            </Link>
+            <Link href="/register" className="relative mt-8 inline-block"><Button size="lg" className="bg-white text-primary hover:bg-white/90">Start finding leads <ArrowRight className="h-4 w-4" /></Button></Link>
           </Card>
         </motion.div>
       </section>
@@ -263,6 +303,21 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+    </div>
+  );
+}
+
+function Faq({ q, a }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="rounded-xl border border-border bg-background">
+      <button onClick={() => setOpen((o) => !o)} className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left">
+        <span className="font-semibold">{q}</span>
+        <ChevronDown className={`h-5 w-5 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      <motion.div initial={false} animate={{ height: open ? "auto" : 0, opacity: open ? 1 : 0 }} transition={{ duration: 0.25, ease: EASE }} className="overflow-hidden">
+        <p className="px-5 pb-4 text-sm text-muted-foreground">{a}</p>
+      </motion.div>
     </div>
   );
 }
