@@ -143,32 +143,42 @@ export async function runDueSequences(): Promise<{ processed: number; sent: numb
 
   let sent = 0;
   for (const e of due) {
-    if (e.sequence.status !== "ACTIVE") continue; // paused → hold
-    const steps = e.sequence.steps;
-    const step = steps[e.currentStep];
-    if (!step) {
-      await prisma.sequenceEnrollment.update({ where: { id: e.id }, data: { status: "COMPLETED", nextRunAt: null } });
+    // Isolate each enrollment so one failure can't abort the whole batch.
+    try {
+      if (e.sequence.status !== "ACTIVE") continue; // paused → hold
+      const steps = e.sequence.steps;
+      const step = steps[e.currentStep];
+      if (!step) {
+        await prisma.sequenceEnrollment.update({ where: { id: e.id }, data: { status: "COMPLETED", nextRunAt: null } });
+        continue;
+      }
+      // Can't send without a valid sender (FK) — stop the enrollment cleanly.
+      if (!e.enrolledById) {
+        await prisma.sequenceEnrollment.update({ where: { id: e.id }, data: { status: "STOPPED", stoppedReason: "No sender for this sequence.", nextRunAt: null } });
+        continue;
+      }
+
+      const ctx = { userId: e.enrolledById, organizationId: e.organizationId, role: "SALES_REP", name: "", email: "" } as TenantContext;
+      const res = await sendToContact(ctx, { contactId: e.contactId, subject: step.subject, body: step.body });
+
+      if (!res.ok) {
+        await prisma.sequenceEnrollment.update({ where: { id: e.id }, data: { status: "STOPPED", stoppedReason: res.error, nextRunAt: null } });
+        continue;
+      }
+      sent++;
+
+      const nextIdx = e.currentStep + 1;
+      const next = steps[nextIdx];
+      await prisma.sequenceEnrollment.update({
+        where: { id: e.id },
+        data: next
+          ? { currentStep: nextIdx, nextRunAt: addDays(e.enrolledAt, next.dayOffset) }
+          : { currentStep: nextIdx, status: "COMPLETED", nextRunAt: null },
+      });
+    } catch {
+      // Skip this enrollment this run; the next cron tick will retry it.
       continue;
     }
-
-    // Build a minimal tenant context to send as the enroller.
-    const ctx = { userId: e.enrolledById ?? "", organizationId: e.organizationId, role: "SALES_REP", name: "", email: "" } as TenantContext;
-    const res = await sendToContact(ctx, { contactId: e.contactId, subject: step.subject, body: step.body });
-
-    if (!res.ok) {
-      await prisma.sequenceEnrollment.update({ where: { id: e.id }, data: { status: "STOPPED", stoppedReason: res.error, nextRunAt: null } });
-      continue;
-    }
-    sent++;
-
-    const nextIdx = e.currentStep + 1;
-    const next = steps[nextIdx];
-    await prisma.sequenceEnrollment.update({
-      where: { id: e.id },
-      data: next
-        ? { currentStep: nextIdx, nextRunAt: addDays(e.enrolledAt, next.dayOffset) }
-        : { currentStep: nextIdx, status: "COMPLETED", nextRunAt: null },
-    });
   }
 
   return { processed: due.length, sent };

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getTenantContext } from "@/server/tenant";
+import { roleAtLeast } from "@/lib/enums";
 import { isAiEnabled } from "@/lib/ai";
 import { runContactAi } from "@/server/services/aiService";
 
@@ -15,6 +16,7 @@ const schema = z.object({
 export async function POST(request: Request) {
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!roleAtLeast(ctx.role, "SALES_REP")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   if (!isAiEnabled()) {
     return NextResponse.json({ error: "AI isn’t configured. Add ANTHROPIC_API_KEY to your .env." }, { status: 400 });
   }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getTenantContext } from "@/server/tenant";
 import { isOrgMember } from "@/server/orgGuards";
+import { roleAtLeast } from "@/lib/enums";
 import { listTasks, createTask } from "@/server/services/taskService";
 import { createTaskSchema } from "@/lib/validations/task";
 
@@ -18,6 +19,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!roleAtLeast(ctx.role, "SALES_REP")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const parsed = createTaskSchema.safeParse(await request.json());
   if (!parsed.success) {

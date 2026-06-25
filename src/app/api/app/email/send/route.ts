@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getTenantContext } from "@/server/tenant";
+import { roleAtLeast } from "@/lib/enums";
 import { sendToContact } from "@/server/services/emailService";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +16,7 @@ const schema = z.object({
 export async function POST(request: Request) {
   const ctx = await getTenantContext();
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!roleAtLeast(ctx.role, "SALES_REP")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const parsed = schema.safeParse(await request.json());
   if (!parsed.success) {
