@@ -14,6 +14,7 @@ import {
   BarChart3,
   UserCog,
   Settings,
+  CopyCheck,
   X,
   ChevronRight,
 } from "lucide-react";
@@ -40,6 +41,7 @@ const NAV: Item[] = [
   { href: "/app/sequences", label: "Sequences", icon: Mailbox, minRole: "MANAGER", live: true },
   { href: "/app/campaigns", label: "Campaigns", icon: Megaphone, minRole: "MANAGER", live: true },
   { href: "/app/reports", label: "Reports", icon: BarChart3, minRole: "MANAGER", live: true },
+  { href: "/app/duplicates", label: "Duplicates", icon: CopyCheck, minRole: "MANAGER", live: true },
   { href: "/app/team", label: "Team", icon: UserCog, minRole: "MANAGER", live: true },
   { href: "/app/settings", label: "Settings", icon: Settings, minRole: "ADMIN", live: true },
 ];
