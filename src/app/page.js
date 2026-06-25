@@ -3,265 +3,134 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
-  Search,
-  Sparkles,
-  Star,
-  Download,
-  ShieldCheck,
-  Zap,
-  Database,
-  ArrowRight,
-  CheckCircle2,
-  Quote,
+  Search, Sparkles, Star, ArrowRight, CheckCircle2, MapPin, Handshake,
+  Mailbox, Building2, BarChart3, Bot, Zap, Globe, Phone, DollarSign, Trophy,
 } from "lucide-react";
 import HeroSearch from "@/components/HeroSearch";
 import { LogoMark } from "@/components/Logo";
+import { CountUp } from "@/components/app/CountUp";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 24 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.16, 1, 0.3, 1] } },
-};
-const stagger = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.12 } },
-};
+const EASE = [0.16, 1, 0.3, 1];
+const fadeUp = { hidden: { opacity: 0, y: 24 }, show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: EASE } } };
+const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.1 } } };
 
-const features = [
-  { icon: Database, title: "Real business data", desc: "Powered by Google Maps — names, categories, phone numbers, ratings, reviews, websites and full addresses." },
-  { icon: Zap, title: "Results in seconds", desc: "Type a business type and a city. We fetch and paginate up to 60 verified leads instantly." },
-  { icon: Download, title: "One-click export", desc: "Download a clean, Excel-ready CSV of every lead so your sales team can start outreach right away." },
-  { icon: ShieldCheck, title: "Your key stays safe", desc: "All API calls run on the server. Your Google key is never exposed to the browser." },
-];
-
-const steps = [
-  { n: "01", title: "Describe your target", desc: "e.g. “Dentists in Karachi” or “Gyms in Dubai”." },
-  { n: "02", title: "We pull the leads", desc: "Verified businesses with contact details and ratings." },
-  { n: "03", title: "Filter & export", desc: "Refine by rating, save favourites, download CSV." },
-];
-
-const testimonials = [
-  { name: "Ayesha Khan", role: "Sales Lead, Nexa Media", img: "https://i.pravatar.cc/120?img=47", quote: "We built a 300-business outreach list in an afternoon. What used to take days is now a coffee break." },
-  { name: "Daniel Reyes", role: "Founder, GrowthLab", img: "https://i.pravatar.cc/120?img=12", quote: "The CSV export drops straight into our CRM. Clean data, real phone numbers, zero copy-paste." },
-  { name: "Sara Malik", role: "Agency Owner", img: "https://i.pravatar.cc/120?img=32", quote: "My team finds local prospects in any city instantly. It genuinely looks and feels premium." },
-];
-
-const columns = ["Name", "Category", "Phone", "Rating", "Website"];
+const reveal = { initial: "hidden", whileInView: "show", viewport: { once: true, margin: "-60px" }, variants: fadeUp };
 
 export default function HomePage() {
   return (
-    <div>
-      {/* HERO */}
+    <div className="overflow-x-hidden">
+      {/* ───────── HERO ───────── */}
       <section className="relative overflow-hidden mesh-bg">
-        {/* dotted grid texture + animated colour blobs */}
         <div className="grid-fade pointer-events-none absolute inset-0 -z-0" />
         <div className="pointer-events-none absolute inset-0 -z-0">
-          <div className="blob left-[8%] top-[12%] h-72 w-72 bg-indigo-300" />
-          <div className="blob right-[6%] top-[22%] h-80 w-80 bg-fuchsia-300" style={{ animationDelay: "1.5s" }} />
-          <div className="blob left-1/2 bottom-[2%] h-72 w-72 bg-sky-300" style={{ animationDelay: "3s" }} />
+          <div className="blob left-[6%] top-[10%] h-72 w-72 bg-indigo-300" />
+          <div className="blob right-[4%] top-[18%] h-80 w-80 bg-fuchsia-300" style={{ animationDelay: "1.5s" }} />
+          <div className="blob left-1/2 bottom-0 h-72 w-72 bg-sky-300" style={{ animationDelay: "3s" }} />
         </div>
 
         <div className="container relative z-10 py-20 sm:py-28">
-          <motion.div
-            variants={stagger}
-            initial="hidden"
-            animate="show"
-            className="mx-auto max-w-3xl text-center"
-          >
-            <motion.span
-              variants={fadeUp}
-              className="glass inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium text-muted-foreground"
-            >
+          <motion.div variants={stagger} initial="hidden" animate="show" className="mx-auto max-w-3xl text-center">
+            <motion.span variants={fadeUp} className="glass inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium text-muted-foreground">
               <span className="relative flex h-2 w-2">
                 <span className="pulse-ring absolute inline-flex h-full w-full rounded-full bg-primary/60" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
               </span>
-              From Google Maps to closed deals — one CRM
+              Find leads on Google Maps · close them in your CRM
             </motion.span>
 
-            <motion.h1
-              variants={fadeUp}
-              className="mt-6 text-balance text-5xl font-extrabold leading-[1.05] tracking-tight text-foreground sm:text-7xl"
-            >
-              Find your next customers{" "}
-              <span className="text-gradient">in seconds</span>
+            <motion.h1 variants={fadeUp} className="mt-6 text-balance text-5xl font-extrabold leading-[1.03] tracking-tight text-foreground sm:text-7xl">
+              Turn the map into{" "}
+              <span className="relative whitespace-nowrap text-gradient">
+                paying customers
+                <svg className="absolute -bottom-2 left-0 w-full" height="10" viewBox="0 0 300 10" fill="none" preserveAspectRatio="none">
+                  <motion.path d="M2 7 Q 150 -2 298 6" stroke="url(#g)" strokeWidth="3.5" strokeLinecap="round" fill="none"
+                    initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay: 0.6, duration: 0.9, ease: EASE }} />
+                  <defs><linearGradient id="g" x1="0" y1="0" x2="300" y2="0"><stop stopColor="#6366f1" /><stop offset="1" stopColor="#d946ef" /></linearGradient></defs>
+                </svg>
+              </span>
             </motion.h1>
 
-            <motion.p
-              variants={fadeUp}
-              className="mx-auto mt-6 max-w-2xl text-balance text-lg text-muted-foreground sm:text-xl"
-            >
-              Search any business type in any location to pull verified
-              companies and contacts — then work them through deals, a drag-and-drop
-              pipeline, tasks and email, all in one relational CRM.
+            <motion.p variants={fadeUp} className="mx-auto mt-7 max-w-2xl text-balance text-lg text-muted-foreground sm:text-xl">
+              Search any business type in any city, pull verified companies &amp; contacts, then work
+              them through deals, sequences and tasks — all in one all‑in‑one CRM.
             </motion.p>
 
             <motion.div variants={fadeUp} className="mx-auto mt-10 max-w-3xl">
-              {/* glow halo behind the search bar */}
               <div className="relative">
                 <div className="absolute -inset-3 -z-10 rounded-[1.75rem] bg-gradient-to-r from-indigo-400/30 via-fuchsia-400/30 to-sky-400/30 blur-2xl" />
                 <HeroSearch />
               </div>
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs text-muted-foreground">
+                <span className="font-medium">Try:</span>
+                {["Dentists in Karachi", "Gyms in Dubai", "Cafés in Lahore"].map((t) => (
+                  <span key={t} className="rounded-full border border-border bg-card/70 px-2.5 py-1">{t}</span>
+                ))}
+              </div>
               <div className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
-                <span className="inline-flex items-center gap-1.5">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500" /> 1 free search, no signup
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500" /> 20 leads / search
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500" /> Free plan: 100 companies
-                </span>
+                {["1 free search, no signup", "20 leads / search", "Free plan: 100 companies"].map((t) => (
+                  <span key={t} className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-emerald-500" /> {t}</span>
+                ))}
               </div>
             </motion.div>
-          </motion.div>
-
-          {/* Preview mockup — floating glass panel with live badges */}
-          <motion.div
-            initial={{ opacity: 0, y: 50, rotateX: 10 }}
-            animate={{ opacity: 1, y: 0, rotateX: 0 }}
-            transition={{ delay: 0.5, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            style={{ perspective: 1200 }}
-            className="relative mx-auto mt-16 max-w-4xl"
-          >
-            {/* glow base */}
-            <div className="absolute -inset-x-10 -bottom-8 top-10 -z-10 rounded-[2rem] bg-gradient-to-tr from-indigo-300/40 via-fuchsia-300/30 to-sky-300/40 blur-3xl" />
-
-            {/* floating badges */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 1.1, duration: 0.5 }}
-              className="bob glass absolute -left-4 top-16 z-20 hidden items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold shadow-card sm:flex"
-            >
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600">
-                <CheckCircle2 className="h-4 w-4" />
-              </span>
-              60 verified leads
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 1.3, duration: 0.5 }}
-              style={{ animationDelay: "1.5s" }}
-              className="bob glass absolute -right-4 bottom-12 z-20 hidden items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold shadow-card sm:flex"
-            >
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-100 text-amber-600">
-                <Star className="h-4 w-4 fill-amber-400 text-amber-500" />
-              </span>
-              Sorted by rating
-            </motion.div>
-
-            <Card className="overflow-hidden p-0 ring-1 ring-white/60">
-              <div className="flex items-center gap-1.5 border-b border-border bg-secondary/60 px-4 py-3">
-                <span className="h-3 w-3 rounded-full bg-red-400" />
-                <span className="h-3 w-3 rounded-full bg-amber-400" />
-                <span className="h-3 w-3 rounded-full bg-emerald-400" />
-                <span className="ml-3 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Search className="h-3.5 w-3.5" />
-                  Restaurants in Mirpurkhas — 20 leads
-                </span>
-              </div>
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="bg-secondary/40 text-xs uppercase tracking-wide text-muted-foreground">
-                    {columns.map((c) => (
-                      <th key={c} className="px-4 py-2.5 font-medium">{c}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {[
-                    ["Pizza Max", "Fast Food", "(022) 111 629 111", "4.8", "pizzamax.com.pk"],
-                    ["KFC Mirpur Khas", "Fast Food", "(051) 111 532 532", "4.3", "kfcpakistan.com"],
-                    ["Spice N Grill", "Restaurant", "0311 1555760", "4.0", "webild.io"],
-                    ["Mirchi 360°", "Restaurant", "0336 3300360", "3.9", "—"],
-                  ].map((r, idx) => (
-                    <motion.tr
-                      key={r[0]}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.8 + idx * 0.12 }}
-                      className="transition-colors hover:bg-accent/40"
-                    >
-                      <td className="px-4 py-3 font-semibold">{r[0]}</td>
-                      <td className="px-4 py-3">
-                        <span className="rounded-full bg-accent px-2.5 py-0.5 text-xs text-accent-foreground">{r[1]}</span>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">{r[2]}</td>
-                      <td className="px-4 py-3">
-                        <span className="inline-flex items-center gap-1">
-                          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                          {r[3]}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-primary">{r[4]}</td>
-                    </motion.tr>
-                  ))}
-                </tbody>
-              </table>
-            </Card>
           </motion.div>
         </div>
       </section>
 
-      {/* STATS STRIP */}
+      {/* ───────── STATS ───────── */}
       <section className="border-y border-border bg-card">
         <div className="container grid grid-cols-2 gap-6 py-10 sm:grid-cols-4">
           {[
-            ["8M+", "Businesses reachable"],
-            ["60", "Leads per search"],
-            ["7", "Data points each"],
-            ["1-click", "CSV export"],
-          ].map(([big, small], i) => (
-            <motion.div
-              key={small}
-              variants={fadeUp}
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.08 }}
-              className="text-center"
-            >
-              <div className="text-3xl font-extrabold tracking-tight text-gradient">{big}</div>
-              <div className="mt-1 text-sm text-muted-foreground">{small}</div>
+            { v: 8, suffix: "M+", label: "Businesses reachable" },
+            { v: 60, suffix: "", label: "Leads per search" },
+            { v: 9, suffix: "", label: "Modules in one app" },
+            { v: 100, suffix: "%", label: "Built for closing" },
+          ].map((s, i) => (
+            <motion.div key={s.label} {...reveal} transition={{ delay: i * 0.08 }} className="text-center">
+              <div className="text-3xl font-extrabold tracking-tight text-gradient sm:text-4xl">
+                <CountUp value={s.v} format={(n) => `${Math.round(n)}${s.suffix}`} />
+              </div>
+              <div className="mt-1 text-sm text-muted-foreground">{s.label}</div>
             </motion.div>
           ))}
         </div>
       </section>
 
-      {/* FEATURES */}
-      <section className="container py-20">
-        <motion.div
-          variants={fadeUp}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true }}
-          className="mx-auto max-w-2xl text-center"
-        >
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Everything you need to build a lead list
-          </h2>
-          <p className="mt-4 text-muted-foreground">
-            Stop copying details off Google Maps by hand. LeadFinder does it for
-            you — clean, structured and exportable.
-          </p>
+      {/* ───────── BENTO FEATURES ───────── */}
+      <section className="container py-20 sm:py-24">
+        <motion.div {...reveal} className="mx-auto max-w-2xl text-center">
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Everything from <span className="text-gradient">first search</span> to closed deal</h2>
+          <p className="mt-4 text-muted-foreground">Most teams stitch together a scraper, a spreadsheet and an expensive CRM. This is all three — in one.</p>
         </motion.div>
 
-        <motion.div
-          variants={stagger}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, margin: "-60px" }}
-          className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4"
-        >
-          {features.map((f) => (
-            <motion.div key={f.title} variants={fadeUp} whileHover={{ y: -6 }}>
-              <Card className="h-full p-6 transition-shadow hover:shadow-glow">
-                <span className="brand-gradient flex h-11 w-11 items-center justify-center rounded-xl shadow-soft">
-                  <f.icon className="h-5 w-5 text-white" />
-                </span>
+        <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-60px" }}
+          className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {/* big tile */}
+          <motion.div variants={fadeUp} className="lg:col-span-2">
+            <Card className="group relative h-full overflow-hidden p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-glow">
+              <div className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-indigo-300/30 blur-2xl transition-opacity group-hover:opacity-80" />
+              <span className="brand-gradient flex h-12 w-12 items-center justify-center rounded-2xl shadow-soft"><MapPin className="h-6 w-6 text-white" /></span>
+              <h3 className="mt-4 text-xl font-bold">Discover leads from Google Maps</h3>
+              <p className="mt-2 max-w-md text-sm text-muted-foreground">Type a business type and a city — get verified companies with phone, website, rating and address, deduped against your CRM, ready to save in one click.</p>
+              <div className="mt-5 flex flex-wrap gap-2">
+                {[["Verified phone", Phone], ["Website", Globe], ["Rating", Star]].map(([t, Icon]) => (
+                  <span key={t} className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground"><Icon className="h-3.5 w-3.5" /> {t}</span>
+                ))}
+              </div>
+            </Card>
+          </motion.div>
+
+          {[
+            { icon: Handshake, title: "Drag‑and‑drop pipeline", desc: "Move deals across stages with a weighted forecast and stale‑deal alerts." },
+            { icon: Mailbox, title: "Email sequences", desc: "Automated multi‑step follow‑ups that send on schedule and track opens." },
+            { icon: Sparkles, title: "1‑click enrichment", desc: "Pull emails, phones & socials straight from a company's website." },
+            { icon: BarChart3, title: "Reports & forecast", desc: "Pipeline, win‑rate, sources and a monthly goal tracker — export anytime." },
+            { icon: Bot, title: "AI assistant", desc: "Summarize a contact or draft an outreach email with Claude." },
+          ].map((f) => (
+            <motion.div key={f.title} variants={fadeUp}>
+              <Card className="group h-full p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-glow">
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary transition-transform duration-300 group-hover:scale-110"><f.icon className="h-5 w-5" /></span>
                 <h3 className="mt-4 font-semibold">{f.title}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">{f.desc}</p>
               </Card>
@@ -270,174 +139,123 @@ export default function HomePage() {
         </motion.div>
       </section>
 
-      {/* SPLIT: built for sales teams (with image) */}
+      {/* ───────── PRODUCT SHOWCASE (pipeline) ───────── */}
       <section className="border-y border-border bg-card">
-        <div className="container grid items-center gap-12 py-20 lg:grid-cols-2">
-          <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            <span className="inline-flex items-center gap-2 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground">
-              <LogoMark size={16} /> Built for sales teams
-            </span>
-            <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">
-              From “who do we call?” to a full pipeline
-            </h2>
-            <p className="mt-4 text-muted-foreground">
-              Whether you sell websites, run ads, or do field sales — point
-              LeadFinder at any city and get a ready-to-work prospect list with
-              the details that matter.
-            </p>
-            <ul className="mt-6 space-y-3">
-              {[
-                "Verified phone numbers to start calling today",
-                "Spot businesses with no website — instant pitches",
-                "Sort by rating & reviews to prioritise the best",
-              ].map((t) => (
-                <li key={t} className="flex items-start gap-2.5 text-sm">
-                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
-                  <span>{t}</span>
-                </li>
-              ))}
-            </ul>
-            <Link href="/register" className="mt-7 inline-block">
-              <Button variant="gradient" size="lg">
-                <Search className="h-5 w-5" /> Get started free
-              </Button>
-            </Link>
+        <div className="container py-20 sm:py-24">
+          <motion.div {...reveal} className="mx-auto max-w-2xl text-center">
+            <span className="inline-flex items-center gap-2 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground"><Handshake className="h-3.5 w-3.5" /> Your sales pipeline</span>
+            <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">See every deal at a glance</h2>
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="relative"
-          >
-            <div className="absolute -inset-4 -z-10 rounded-3xl bg-gradient-to-tr from-indigo-200/60 to-fuchsia-200/60 blur-2xl" />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=1200&q=80"
-              alt="Sales team collaborating"
-              loading="lazy"
-              className="aspect-[4/3] w-full rounded-2xl border border-border object-cover shadow-card"
-            />
+          <motion.div initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, ease: EASE }}
+            className="relative mx-auto mt-12 max-w-5xl">
+            <div className="absolute -inset-x-8 -bottom-6 top-8 -z-10 rounded-[2rem] bg-gradient-to-tr from-indigo-300/40 via-fuchsia-300/30 to-sky-300/40 blur-3xl" />
+            <Card className="overflow-hidden p-0 ring-1 ring-white/60">
+              <div className="flex items-center gap-1.5 border-b border-border bg-secondary/60 px-4 py-3">
+                <span className="h-3 w-3 rounded-full bg-red-400" /><span className="h-3 w-3 rounded-full bg-amber-400" /><span className="h-3 w-3 rounded-full bg-emerald-400" />
+                <span className="ml-3 text-xs text-muted-foreground">app · Deals</span>
+              </div>
+              <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-4">
+                {[
+                  { stage: "New", color: "bg-indigo-500", deals: [["Acme Dental", "$5k"], ["FitZone Gym", "$3k"]] },
+                  { stage: "Qualified", color: "bg-indigo-500", deals: [["One 10 Pizza", "$4.4k"]] },
+                  { stage: "Won", color: "bg-emerald-500", deals: [["City Law", "$4.2k"]] },
+                  { stage: "Lost", color: "bg-rose-500", deals: [["Bright Smile", "$0"]] },
+                ].map((col, ci) => (
+                  <div key={col.stage}>
+                    <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold">
+                      <span className={`h-2.5 w-2.5 rounded-full ${col.color}`} /> {col.stage}
+                    </div>
+                    <div className="space-y-2">
+                      {col.deals.map((d, di) => (
+                        <motion.div key={d[0]} initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 + ci * 0.1 + di * 0.08 }}
+                          className="rounded-lg border border-border bg-card p-2.5 shadow-sm">
+                          <div className="truncate text-xs font-semibold">{d[0]}</div>
+                          <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700"><DollarSign className="h-2.5 w-2.5" />{d[1]}</div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
           </motion.div>
         </div>
       </section>
 
-      {/* HOW IT WORKS */}
-      <section className="container py-20">
-        <motion.div
-          variants={fadeUp}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true }}
-          className="mx-auto max-w-2xl text-center"
-        >
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Three steps to a full pipeline
-          </h2>
+      {/* ───────── HOW IT WORKS ───────── */}
+      <section className="container py-20 sm:py-24">
+        <motion.div {...reveal} className="mx-auto max-w-2xl text-center">
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">From zero to pipeline in 3 steps</h2>
         </motion.div>
-        <motion.div
-          variants={stagger}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true }}
-          className="mt-12 grid gap-8 md:grid-cols-3"
-        >
-          {steps.map((s) => (
-            <motion.div key={s.n} variants={fadeUp} className="relative">
-              <span className="text-5xl font-extrabold text-accent">{s.n}</span>
-              <h3 className="mt-3 text-lg font-semibold">{s.title}</h3>
-              <p className="mt-2 text-sm text-muted-foreground">{s.desc}</p>
+        <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }} className="relative mt-14 grid gap-8 md:grid-cols-3">
+          <div className="pointer-events-none absolute left-0 right-0 top-7 hidden h-px bg-gradient-to-r from-transparent via-border to-transparent md:block" />
+          {[
+            { n: "01", icon: Search, title: "Discover", desc: "Search Google Maps for your ideal customers in any city." },
+            { n: "02", icon: Building2, title: "Organize", desc: "Save them as companies & contacts, enrich, tag and assign." },
+            { n: "03", icon: Trophy, title: "Close", desc: "Work deals through the pipeline with tasks, email & sequences." },
+          ].map((s) => (
+            <motion.div key={s.n} variants={fadeUp} className="relative text-center">
+              <span className="brand-gradient relative z-10 mx-auto flex h-14 w-14 items-center justify-center rounded-2xl text-white shadow-soft"><s.icon className="h-6 w-6" /></span>
+              <div className="mt-4 text-xs font-bold tracking-widest text-muted-foreground">STEP {s.n}</div>
+              <h3 className="mt-1 text-lg font-semibold">{s.title}</h3>
+              <p className="mx-auto mt-2 max-w-xs text-sm text-muted-foreground">{s.desc}</p>
             </motion.div>
           ))}
         </motion.div>
       </section>
 
-      {/* TESTIMONIALS */}
+      {/* ───────── PRICING ───────── */}
       <section className="border-t border-border bg-card">
-        <div className="container py-20">
-          <motion.div
-            variants={fadeUp}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true }}
-            className="mx-auto max-w-2xl text-center"
-          >
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Loved by sales teams
-            </h2>
+        <div className="container py-20 sm:py-24">
+          <motion.div {...reveal} className="mx-auto max-w-2xl text-center">
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Simple, honest pricing</h2>
+            <p className="mt-4 text-muted-foreground">Start free. Upgrade when you're ready to scale.</p>
           </motion.div>
-          <motion.div
-            variants={stagger}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: "-60px" }}
-            className="mt-12 grid gap-5 md:grid-cols-3"
-          >
-            {testimonials.map((t) => (
-              <motion.div key={t.name} variants={fadeUp} whileHover={{ y: -6 }}>
-                <Card className="flex h-full flex-col p-6">
-                  <Quote className="h-7 w-7 text-accent-foreground/40" />
-                  <p className="mt-3 flex-1 text-sm text-foreground">“{t.quote}”</p>
-                  <div className="mt-5 flex items-center gap-3">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={t.img}
-                      alt={t.name}
-                      loading="lazy"
-                      className="h-10 w-10 rounded-full border border-border object-cover"
-                    />
-                    <div>
-                      <div className="text-sm font-semibold">{t.name}</div>
-                      <div className="text-xs text-muted-foreground">{t.role}</div>
-                    </div>
-                  </div>
+          <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }} className="mt-12 grid gap-5 lg:grid-cols-3">
+            {[
+              { name: "Free", price: "$0", blurb: "For trying it out.", feats: ["100 companies", "20 leads / search", "Pipeline & tasks", "CSV export"], cta: "Start free", highlight: false },
+              { name: "Pro", price: "$29", blurb: "For small sales teams.", feats: ["Unlimited companies", "3 seats", "Sequences & campaigns", "Reports & analytics"], cta: "Start free trial", highlight: true },
+              { name: "Agency", price: "$99", blurb: "For agencies at scale.", feats: ["Unlimited companies", "25 seats", "Team performance", "CSV export & API"], cta: "Start free trial", highlight: false },
+            ].map((p) => (
+              <motion.div key={p.name} variants={fadeUp} whileHover={{ y: -6 }}>
+                <Card className={`relative flex h-full flex-col p-7 ${p.highlight ? "ring-2 ring-primary shadow-glow" : ""}`}>
+                  {p.highlight && <span className="brand-gradient absolute -top-3 left-7 rounded-full px-3 py-0.5 text-xs font-semibold text-white shadow-soft">Most popular</span>}
+                  <h3 className="text-lg font-bold">{p.name}</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">{p.blurb}</p>
+                  <div className="mt-4 flex items-end gap-1"><span className="text-4xl font-extrabold tracking-tight">{p.price}</span><span className="mb-1 text-sm text-muted-foreground">/ mo</span></div>
+                  <ul className="mt-5 flex-1 space-y-2.5 text-sm">
+                    {p.feats.map((f) => <li key={f} className="flex items-start gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" /> {f}</li>)}
+                  </ul>
+                  <Link href="/register" className="mt-6"><Button variant={p.highlight ? "gradient" : "outline"} className="w-full">{p.cta}</Button></Link>
                 </Card>
               </motion.div>
             ))}
           </motion.div>
+          <p className="mt-4 text-center text-xs text-muted-foreground">Prices shown in USD · local pricing available at checkout</p>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="container py-20">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-        >
+      {/* ───────── CTA ───────── */}
+      <section className="container py-20 sm:py-24">
+        <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, ease: EASE }}>
           <Card className="brand-gradient relative overflow-hidden p-10 text-center text-white sm:p-16">
-            <div className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full bg-white/15 blur-2xl" />
-            <h2 className="relative text-3xl font-bold tracking-tight sm:text-4xl">
-              Ready to find your next 60 customers?
-            </h2>
-            <p className="relative mx-auto mt-4 max-w-xl text-white/85">
-              Create your free account — no credit card required.
-            </p>
+            <div className="pointer-events-none absolute -right-10 -top-10 h-56 w-56 rounded-full bg-white/15 blur-2xl" />
+            <div className="pointer-events-none absolute -bottom-12 -left-8 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
+            <Sparkles className="relative mx-auto h-8 w-8" />
+            <h2 className="relative mt-4 text-3xl font-bold tracking-tight sm:text-4xl">Find your next customer in the next 5 minutes</h2>
+            <p className="relative mx-auto mt-4 max-w-xl text-white/85">Free to start — no credit card. Run a search right now and see real leads.</p>
             <Link href="/register" className="relative mt-8 inline-block">
-              <Button size="lg" className="bg-white text-primary hover:bg-white/90">
-                <Search className="h-5 w-5" />
-                Start finding leads
-                <ArrowRight className="h-4 w-4" />
-              </Button>
+              <Button size="lg" className="bg-white text-primary hover:bg-white/90">Start finding leads <ArrowRight className="h-4 w-4" /></Button>
             </Link>
           </Card>
         </motion.div>
       </section>
 
-      {/* FOOTER */}
+      {/* ───────── FOOTER ───────── */}
       <footer className="border-t border-border">
         <div className="container flex flex-col items-center justify-between gap-3 py-8 text-sm text-muted-foreground sm:flex-row">
-          <span className="flex items-center gap-2">
-            <LogoMark size={22} />
-            © 2026 LeadFinder. Built for sales teams.
-          </span>
+          <span className="flex items-center gap-2"><LogoMark size={22} /> © 2026 LeadFinder. From the map to the close.</span>
           <div className="flex gap-5">
             <Link href="/pricing" className="hover:text-foreground">Pricing</Link>
             <Link href="/login" className="hover:text-foreground">Sign in</Link>
