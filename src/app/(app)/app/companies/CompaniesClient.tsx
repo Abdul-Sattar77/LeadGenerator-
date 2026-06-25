@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Building2, Search, Plus, Loader2, Users, Briefcase, Globe, MapPin } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { Building2, Search, Plus, Loader2, Globe, MapPin, Upload, Download } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +15,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/app/PageHeader";
 import { TagChips } from "@/components/app/TagEditor";
+import { api } from "@/lib/api";
+import { parseCsv, mapRows } from "@/lib/csv";
 import { fadeUp, stagger } from "@/lib/motion";
 import { useCompanies, useCreateCompany, type CompanyRow } from "@/hooks/useCompanies";
 import { toast } from "@/stores/toastStore";
@@ -29,6 +32,7 @@ export default function CompaniesClient() {
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
   const [showNew, setShowNew] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("new") === "1") setShowNew(true);
   }, []);
@@ -44,9 +48,11 @@ export default function CompaniesClient() {
         subtitle="Accounts you're selling into — each can hold many contacts and deals."
         icon={Building2}
         actions={
-          <Button onClick={() => setShowNew(true)}>
-            <Plus className="h-4 w-4" /> New company
-          </Button>
+          <div className="flex items-center gap-2">
+            <a href="/api/app/companies/export"><Button variant="outline"><Download className="h-4 w-4" /> Export</Button></a>
+            <Button variant="outline" onClick={() => setShowImport(true)}><Upload className="h-4 w-4" /> Import CSV</Button>
+            <Button onClick={() => setShowNew(true)}><Plus className="h-4 w-4" /> New company</Button>
+          </div>
         }
       />
 
@@ -135,7 +141,78 @@ export default function CompaniesClient() {
       )}
 
       <NewCompanyDialog open={showNew} onOpenChange={setShowNew} />
+      <CompanyImportDialog open={showImport} onOpenChange={setShowImport} />
     </div>
+  );
+}
+
+const HEADER_MAP: Record<string, string> = {
+  name: "name", company: "name", "company name": "name", "business name": "name",
+  industry: "industry", category: "industry",
+  website: "website", url: "website", site: "website",
+  phone: "phone", "phone number": "phone", tel: "phone",
+  address: "address", street: "address",
+  city: "city", town: "city",
+  country: "country",
+};
+
+function CompanyImportDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const qc = useQueryClient();
+  const [rows, setRows] = useState<Record<string, string>[]>([]);
+  const [fileName, setFileName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const mapped = useMemo(() => mapRows(rows, HEADER_MAP).filter((r) => r.name), [rows]);
+
+  function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = () => setRows(parseCsv(String(reader.result || "")));
+    reader.readAsText(file);
+  }
+
+  async function doImport() {
+    if (!mapped.length) return;
+    setSaving(true);
+    try {
+      const r = await api<{ created: number; skipped: number; atCap: boolean }>("/api/app/companies/import", { method: "POST", body: JSON.stringify({ rows: mapped }) });
+      toast.success(`Imported ${r.created} compan${r.created === 1 ? "y" : "ies"}${r.skipped ? ` · ${r.skipped} skipped` : ""}${r.atCap ? " (plan limit reached)" : ""}.`);
+      setRows([]); setFileName("");
+      qc.invalidateQueries({ queryKey: ["companies"] });
+      onOpenChange(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Import failed");
+    } finally { setSaving(false); }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Import companies from CSV</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Upload a .csv with columns like <span className="font-mono text-xs">name, industry, website, phone, city, country</span>. Headers are auto‑matched.
+          </p>
+          <input ref={inputRef} type="file" accept=".csv,text/csv" onChange={onFile} className="hidden" />
+          <Button variant="outline" onClick={() => inputRef.current?.click()}><Upload className="h-4 w-4" /> {fileName || "Choose CSV file"}</Button>
+          {rows.length > 0 && (
+            <div className="rounded-lg border border-border bg-secondary/30 p-3 text-sm">
+              <span className="font-semibold text-foreground">{mapped.length}</span> companies ready
+              {rows.length - mapped.length > 0 && <span className="text-muted-foreground"> · {rows.length - mapped.length} rows missing a name</span>}
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <DialogClose asChild><Button type="button" variant="ghost">Cancel</Button></DialogClose>
+          <Button onClick={doImport} disabled={saving || !mapped.length}>
+            {saving && <Loader2 className="h-4 w-4 animate-spin" />} Import {mapped.length || ""}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

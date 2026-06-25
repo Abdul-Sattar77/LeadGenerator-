@@ -133,6 +133,45 @@ export async function updateCompany(ctx: TenantContext, id: string, input: Updat
   return prisma.company.update({ where: { id }, data: input });
 }
 
+export interface CompanyImportRow {
+  name?: string; industry?: string; website?: string; phone?: string; address?: string; city?: string; country?: string;
+}
+
+export async function importCompanies(ctx: TenantContext, rows: CompanyImportRow[]) {
+  const limit = await getLeadLimit(ctx.organizationId);
+  let count = limit == null ? 0 : await prisma.company.count({ where: { organizationId: ctx.organizationId } });
+  let created = 0;
+  let skipped = 0;
+  const seen = new Set<string>();
+
+  for (const r of rows) {
+    const name = (r.name || "").trim();
+    if (!name) { skipped++; continue; }
+    const key = name.toLowerCase();
+    if (seen.has(key)) { skipped++; continue; }
+    const dupe = await prisma.company.findFirst({ where: { organizationId: ctx.organizationId, name }, select: { id: true } });
+    if (dupe) { skipped++; continue; }
+    if (limit != null && count >= limit) { skipped++; continue; } // plan cap
+
+    await prisma.company.create({
+      data: {
+        organizationId: ctx.organizationId,
+        name,
+        industry: (r.industry || "").trim() || null,
+        website: (r.website || "").trim() || null,
+        phone: (r.phone || "").trim() || null,
+        address: (r.address || "").trim() || null,
+        city: (r.city || "").trim() || null,
+        country: (r.country || "").trim() || null,
+        source: "IMPORT",
+        ownerId: ctx.userId,
+      },
+    });
+    created++; count++; seen.add(key);
+  }
+  return { created, skipped, atCap: limit != null && count >= limit };
+}
+
 export async function deleteCompany(ctx: TenantContext, id: string) {
   const existing = await prisma.company.findFirst({
     where: { id, organizationId: ctx.organizationId },
