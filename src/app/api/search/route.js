@@ -4,6 +4,7 @@ import { searchPlaces } from "@/lib/google";
 import { auth } from "@/server/auth";
 import { prisma } from "@/server/db";
 import { planOf } from "@/lib/plans";
+import { rateLimit, clientIp } from "@/server/rateLimit";
 
 // Always run fresh on the server (never cache lead results).
 export const dynamic = "force-dynamic";
@@ -18,6 +19,18 @@ export async function GET(request) {
   }
 
   const session = await auth();
+
+  // Rate limit per IP to protect the paid Google API from abuse/loops.
+  // (Also closes the anon-cookie bypass: a script sending no cookies still gets capped.)
+  const ip = clientIp(request);
+  const limit = session?.user?.organizationId ? 30 : 8; // per minute
+  const rl = rateLimit(`search:${ip}`, limit, 60_000);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Too many searches — please slow down and try again shortly.", code: "RATE_LIMITED" },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } }
+    );
+  }
 
   // Per-plan cap: Free (and anonymous) = 20 leads/search; paid = up to 60.
   let maxAllowed = 20;

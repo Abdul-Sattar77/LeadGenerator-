@@ -1,35 +1,80 @@
+import dns from "dns/promises";
+import net from "net";
 import { prisma } from "@/server/db";
 import type { TenantContext } from "@/server/tenant";
 import { logActivity } from "@/server/services/recordService";
 
-// ── Safe outward fetch (basic SSRF guard + timeout + size cap) ─────────────
-function isBlockedHost(host: string): boolean {
-  const h = host.toLowerCase();
-  if (h === "localhost" || h.endsWith(".local") || h.endsWith(".internal")) return true;
-  // Block obvious private / link-local / metadata literals.
-  if (/^(127\.|10\.|192\.168\.|169\.254\.|0\.)/.test(h)) return true;
-  if (/^172\.(1[6-9]|2\d|3[01])\./.test(h)) return true;
-  if (h === "169.254.169.254") return true;
+// ── SSRF-safe outward fetch (DNS-resolved private-IP block, IPv6, manual redirects) ──
+
+/** True for private / loopback / link-local / unique-local / CGNAT addresses (v4 + v6). */
+function isPrivateIp(ip: string): boolean {
+  const v = net.isIP(ip);
+  if (v === 4) {
+    const o = ip.split(".").map(Number);
+    if (o[0] === 10 || o[0] === 127 || o[0] === 0) return true;
+    if (o[0] === 192 && o[1] === 168) return true;
+    if (o[0] === 169 && o[1] === 254) return true; // link-local / metadata
+    if (o[0] === 172 && o[1] >= 16 && o[1] <= 31) return true;
+    if (o[0] === 100 && o[1] >= 64 && o[1] <= 127) return true; // CGNAT
+    return false;
+  }
+  if (v === 6) {
+    const a = ip.toLowerCase();
+    if (a === "::1" || a === "::") return true;
+    if (a.startsWith("fc") || a.startsWith("fd")) return true; // unique-local fc00::/7
+    if (a.startsWith("fe80")) return true; // link-local
+    const mapped = a.match(/::ffff:(\d+\.\d+\.\d+\.\d+)$/); // IPv4-mapped
+    if (mapped) return isPrivateIp(mapped[1]);
+    return false;
+  }
   return false;
 }
 
+function badHostname(host: string): boolean {
+  const h = host.toLowerCase();
+  return h === "localhost" || h.endsWith(".local") || h.endsWith(".internal");
+}
+
+/** Resolve the hostname and reject if ANY resolved address is private. Fails closed. */
+async function isUnsafeUrl(u: URL): Promise<boolean> {
+  if (u.protocol !== "http:" && u.protocol !== "https:") return true;
+  if (badHostname(u.hostname)) return true;
+  const host = u.hostname.replace(/^\[|\]$/g, ""); // strip IPv6 brackets
+  if (net.isIP(host)) return isPrivateIp(host); // literal IP
+  try {
+    const addrs = await dns.lookup(host, { all: true });
+    return addrs.some((a) => isPrivateIp(a.address));
+  } catch {
+    return true; // can't resolve → don't fetch
+  }
+}
+
 async function safeFetch(url: string): Promise<string> {
-  let u: URL;
-  try { u = new URL(url); } catch { return ""; }
-  if (u.protocol !== "http:" && u.protocol !== "https:") return "";
-  if (isBlockedHost(u.hostname)) return "";
+  let current: URL;
+  try { current = new URL(url); } catch { return ""; }
 
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 6000);
   try {
-    const res = await fetch(u.toString(), {
-      signal: ctrl.signal,
-      redirect: "follow",
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; LeadFinderBot/1.0)" },
-    });
-    if (!res.ok) return "";
-    const buf = await res.arrayBuffer();
-    return new TextDecoder().decode(buf.slice(0, 1_000_000)); // cap 1MB
+    // Follow redirects manually so each hop is re-validated against private IPs.
+    for (let hop = 0; hop < 4; hop++) {
+      if (await isUnsafeUrl(current)) return "";
+      const res = await fetch(current.toString(), {
+        signal: ctrl.signal,
+        redirect: "manual",
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; LeadFinderBot/1.0)" },
+      });
+      if (res.status >= 300 && res.status < 400) {
+        const loc = res.headers.get("location");
+        if (!loc) return "";
+        current = new URL(loc, current); // resolve relative redirects
+        continue;
+      }
+      if (!res.ok) return "";
+      const buf = await res.arrayBuffer();
+      return new TextDecoder().decode(buf.slice(0, 1_000_000)); // cap 1MB
+    }
+    return ""; // too many redirects
   } catch {
     return "";
   } finally {

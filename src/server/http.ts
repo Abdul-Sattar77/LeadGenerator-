@@ -3,6 +3,7 @@ import type { ZodSchema } from "zod";
 import { getTenantContext, type TenantContext } from "@/server/tenant";
 import { roleAtLeast, type Role } from "@/lib/enums";
 import { PlanLimitError } from "@/lib/plans";
+import { logError } from "@/server/logger";
 
 // Standard API envelope.
 export function ok<T>(data: T, init?: ResponseInit) {
@@ -55,6 +56,7 @@ export function route<T = undefined>(
     } catch (e) {
       // Plan caps (e.g. Free = 100 companies) → 402 so the UI can prompt upgrade.
       if (e instanceof PlanLimitError) return fail(e.message, 402);
+      logError("API route error", e, { path: req.url, org: ctx.organizationId });
       const message = e instanceof Error ? e.message : "Server error";
       return fail(message, 500);
     }
