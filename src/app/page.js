@@ -41,7 +41,8 @@ export default function HomePage() {
               </motion.span>
               <motion.h1 variants={fadeUp} className="mt-6 text-6xl font-extrabold leading-[0.98] tracking-tight sm:text-7xl xl:text-[5.25rem]">
                 Find Leads.<br />
-                <span className="bg-gradient-to-r from-[#5E8BFF] via-[#6C4CFF] to-[#9E5CFF] bg-clip-text text-transparent">Close Deals.</span>
+                <span className="bg-gradient-to-r from-[#5E8BFF] via-[#6C4CFF] to-[#9E5CFF] bg-clip-text text-transparent">Close Deals.</span><br />
+                Grow Faster.
               </motion.h1>
               <motion.p variants={fadeUp} className="mt-6 max-w-md text-lg text-white/60">
                 All‑in‑one CRM to find verified businesses, connect instantly &amp; grow faster.
@@ -62,25 +63,37 @@ export default function HomePage() {
             </motion.div>
           </div>
 
-          {/* Floating glass search card */}
-          <motion.div id="search" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.7, ease: EASE }} className="mt-14 scroll-mt-24">
-            <HeroSearch />
-          </motion.div>
-
-          {/* Feature strip */}
-          <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }} className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {/* In-hero stat cards */}
+          <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }} className="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
-              { icon: ShieldCheck, title: "100% Verified", sub: "Accurate & reliable data", color: "#9E5CFF" },
-              { icon: Zap, title: "Save Time", sub: "Automate outreach", color: "#5E8BFF" },
-              { icon: Target, title: "Close More Deals", sub: "Better leads, better results", color: "#ec4899" },
-              { icon: BarChart3, title: "All‑in‑One CRM", sub: "Everything in one place", color: "#22c55e" },
-            ].map((f) => (
-              <motion.div key={f.title} variants={fadeUp} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 backdrop-blur">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: `${f.color}22`, color: f.color }}><f.icon className="h-5 w-5" /></span>
-                <div className="min-w-0"><div className="truncate text-sm font-semibold text-white">{f.title}</div><div className="truncate text-xs text-white/45">{f.sub}</div></div>
+              { v: 8, suffix: "M+", label: "Businesses Reachable" },
+              { v: 60, suffix: "", label: "Leads per Search" },
+              { v: 9, suffix: "", label: "Powerful Modules" },
+              { v: 100, suffix: "%", label: "Built for Closing" },
+            ].map((s) => (
+              <motion.div key={s.label} variants={fadeUp} className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur transition-colors hover:border-white/20">
+                <div className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
+                  <CountUp value={s.v} format={(n) => `${Math.round(n)}${s.suffix}`} />
+                </div>
+                <div className="mt-1 text-xs text-white/50">{s.label}</div>
+                <svg className="absolute -bottom-1 right-0 h-9 w-24 opacity-30" viewBox="0 0 100 40" fill="none" preserveAspectRatio="none">
+                  <path d="M0 34 L18 24 L36 30 L54 14 L72 20 L100 4" stroke="#6C4CFF" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+                </svg>
               </motion.div>
             ))}
           </motion.div>
+
+          {/* Floating glass search card */}
+          <motion.div id="search" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5, duration: 0.7, ease: EASE }} className="mt-6 scroll-mt-24">
+            <HeroSearch />
+          </motion.div>
+
+          {/* trust-check row */}
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-white/55">
+            {["No credit card required", "1 free search", "20 leads / search", "Cancel anytime"].map((t) => (
+              <span key={t} className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-emerald-400" /> {t}</span>
+            ))}
+          </div>
         </div>
 
         {/* curved transition into the light sections */}
@@ -91,22 +104,17 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ───────── STATS ───────── */}
-      <section className="border-y border-border bg-card">
-        <div className="container grid grid-cols-2 gap-6 py-10 sm:grid-cols-4">
-          {[
-            { v: 8, suffix: "M+", label: "Businesses reachable" },
-            { v: 60, suffix: "", label: "Leads per search" },
-            { v: 9, suffix: "", label: "Modules in one app" },
-            { v: 100, suffix: "%", label: "Built for closing" },
-          ].map((s, i) => (
-            <motion.div key={s.label} {...reveal} transition={{ delay: i * 0.08 }} className="text-center">
-              <div className="text-3xl font-extrabold tracking-tight text-gradient sm:text-4xl">
-                <CountUp value={s.v} format={(n) => `${Math.round(n)}${s.suffix}`} />
-              </div>
-              <div className="mt-1 text-sm text-muted-foreground">{s.label}</div>
+      {/* ───────── TRUSTED BY (logo marquee) ───────── */}
+      <section className="border-b border-border bg-card py-10">
+        <div className="container flex flex-col items-center gap-6 lg:flex-row lg:gap-10">
+          <p className="shrink-0 text-sm font-medium text-muted-foreground">Trusted by growth‑focused teams</p>
+          <div className="relative flex-1 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]">
+            <motion.div className="flex w-max items-center gap-12 whitespace-nowrap" animate={{ x: ["0%", "-50%"] }} transition={{ duration: 24, repeat: Infinity, ease: "linear" }}>
+              {[...["Daraz", "Careem", "airblue", "HBL", "Bookme", "Jazz", "Foodpanda", "Bykea"], ...["Daraz", "Careem", "airblue", "HBL", "Bookme", "Jazz", "Foodpanda", "Bykea"]].map((c, i) => (
+                <span key={i} className="text-xl font-bold tracking-tight text-muted-foreground/40">{c}</span>
+              ))}
             </motion.div>
-          ))}
+          </div>
         </div>
       </section>
 
@@ -265,14 +273,41 @@ export default function HomePage() {
         </motion.div>
       </section>
 
-      {/* ───────── FOOTER ───────── */}
-      <footer className="border-t border-border">
-        <div className="container flex flex-col items-center justify-between gap-3 py-8 text-sm text-muted-foreground sm:flex-row">
-          <span className="flex items-center gap-2"><LogoMark size={22} /> © 2026 LeadFinder. From the map to the close.</span>
-          <div className="flex gap-5">
-            <Link href="/pricing" className="hover:text-foreground">Pricing</Link>
-            <Link href="/login" className="hover:text-foreground">Sign in</Link>
-            <Link href="/register" className="hover:text-foreground">Get started</Link>
+      {/* ───────── FOOTER (premium dark) ───────── */}
+      <footer className="relative overflow-hidden bg-[#09090f] text-white">
+        <div className="pointer-events-none absolute -top-20 left-1/4 h-64 w-64 rounded-full bg-[#6C4CFF]/20 blur-[120px]" />
+        <div className="container relative z-10 py-16">
+          <div className="grid gap-10 lg:grid-cols-[1.4fr_repeat(4,1fr)]">
+            <div>
+              <Link href="/" className="flex items-center gap-2.5"><LogoMark size={28} /><span className="text-lg font-bold">Lead<span className="bg-gradient-to-r from-[#5E8BFF] to-[#9E5CFF] bg-clip-text text-transparent">Finder</span></span></Link>
+              <p className="mt-4 max-w-xs text-sm text-white/50">From the map to the close. The all‑in‑one CRM that finds leads and helps you win them.</p>
+              <div className="mt-5">
+                <p className="text-xs font-medium text-white/40">Get product updates</p>
+                <form className="mt-2 flex max-w-xs items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-1.5 backdrop-blur">
+                  <input placeholder="you@company.com" className="h-9 w-full bg-transparent px-2 text-sm text-white outline-none placeholder:text-white/30" />
+                  <button type="button" className="flex h-9 shrink-0 items-center rounded-lg bg-gradient-to-r from-[#6C4CFF] to-[#9E5CFF] px-3 text-sm font-semibold"><ArrowRight className="h-4 w-4" /></button>
+                </form>
+              </div>
+            </div>
+            {[
+              { h: "Product", links: [["Features", "/#features"], ["Pricing", "/pricing"], ["Discover", "/register"], ["AI Assistant", "/register"]] },
+              { h: "Solutions", links: [["For Agencies", "/register"], ["For Sales Teams", "/register"], ["Lead Generation", "/register"]] },
+              { h: "Resources", links: [["Blog", "/"], ["Help Center", "/"], ["API Docs", "/"]] },
+              { h: "Company", links: [["About", "/"], ["Careers", "/"], ["Contact", "/"], ["Privacy", "/"]] },
+            ].map((col) => (
+              <div key={col.h}>
+                <h4 className="text-sm font-semibold text-white">{col.h}</h4>
+                <ul className="mt-3 space-y-2 text-sm text-white/50">
+                  {col.links.map(([label, href]) => (
+                    <li key={label}><Link href={href} className="transition-colors hover:text-white">{label}</Link></li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-white/10 pt-6 text-sm text-white/40 sm:flex-row">
+            <span>© 2026 LeadFinder. All rights reserved.</span>
+            <span>Made for sales teams ♥</span>
           </div>
         </div>
       </footer>
