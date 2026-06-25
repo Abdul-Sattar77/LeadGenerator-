@@ -74,7 +74,7 @@ export default async function OverviewPage() {
           {activities.length === 0 ? (
             <EmptyState icon={ActivityIcon} title="No activity yet" description="Actions on your records will show up here." />
           ) : (
-            <ol className="space-y-3.5">
+            <ol className="max-h-80 space-y-3.5 overflow-y-auto pr-1">
               {activities.map((a) => {
                 const href = linkFor(a);
                 return (
@@ -104,7 +104,7 @@ export default async function OverviewPage() {
           {tasks.length === 0 ? (
             <EmptyState icon={CheckSquare} title="You’re all caught up" description="No open tasks right now." />
           ) : (
-            <ul className="space-y-2.5">
+            <ul className="max-h-80 space-y-2.5 overflow-y-auto pr-1">
               {tasks.map((t) => (
                 <li key={t.id} className="flex items-center gap-3 rounded-xl border border-border bg-secondary/30 p-3">
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-secondary">
